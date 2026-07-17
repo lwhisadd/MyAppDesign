@@ -1,6 +1,6 @@
 # Hermes + Codex 多機 Agent 協作最終佈建報告
 
-> 文件版本：1.1  
+> 文件版本：1.2  
 > 建立日期：2026-07-17  
 > 更新日期：2026-07-17  
 > 適用情境：使用 Hermes 作為長期控制平面、Codex CLI 作為軟體工程主管，遠端指揮 OpenCode、Claude Code 與 Antigravity CLI。  
@@ -295,6 +295,24 @@ Hermes 規則：
 
 ## 8. Codex Supervisor
 
+### 8.1 安裝
+
+Codex CLI 需要 Node.js 22+：
+
+```bash
+# 安裝 Node.js 22（若尚未安裝）
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 安裝 Codex CLI
+npm install -g @openai/codex
+
+# 設定 OpenAI API Key
+export OPENAI_API_KEY="sk-..."
+# 建議寫入 ~/.bashrc 或 ~/.profile 永久生效
+echo 'export OPENAI_API_KEY="sk-..."' >> ~/.bashrc
+```
+
 安裝後確認：
 
 ```bash
@@ -302,6 +320,8 @@ codex --version
 codex --help
 codex exec --help
 ```
+
+### 8.2 目錄與設定
 
 建立目錄：
 
@@ -368,6 +388,26 @@ opencode serve --hostname 127.0.0.1 --port 4096
 
 ### 9.2 Claude Code
 
+#### 安裝
+
+```bash
+# 安裝 Node.js 22+（若尚未安裝，同 Section 8.1）
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 安裝 Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# 登入（互動式，完成後憑證保留於本機）
+claude login
+```
+
+> 若使用 Anthropic API key 而非 Max plan OAuth，改用：
+> ```bash
+> export ANTHROPIC_API_KEY="sk-ant-..."
+> echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.bashrc
+> ```
+
 依官方文件安裝及登入後確認：
 
 ```bash
@@ -376,7 +416,7 @@ claude --help
 claude -p "Return OK only"
 ```
 
-執行任務：
+#### 執行任務
 
 ```bash
 cd /srv/agent/worktrees/TASK-ID
@@ -387,10 +427,31 @@ claude -p "$(cat /srv/agent/tasks/TASK-ID.prompt)" --output-format json
 
 ### 9.3 Antigravity CLI
 
-在 Worker 本機完成 Google 帳號登入，憑證保留於該機器。確認：
+#### 安裝
 
 ```bash
+# 安裝 Antigravity CLI（以官方安裝腳本為準，正式部署前請核對 agy --help）
+curl -fsSL https://antigravity.google/install.sh | bash
+source ~/.bashrc
+
+# 確認安裝
+agy --version
 agy --help
+```
+
+#### Google 帳號登入
+
+在 Worker 本機完成 Google 帳號登入，憑證保留於該機器：
+
+```bash
+agy auth login
+# 依照互動提示完成 Google OAuth 瀏覽器授權
+```
+
+確認登入狀態與額度：
+
+```bash
+agy auth status
 ```
 
 在互動 CLI 中使用：
