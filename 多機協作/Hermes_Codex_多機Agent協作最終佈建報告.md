@@ -20,6 +20,7 @@
 
 2. **Codex CLI：軟體工程主管**
    - 根據 task envelope 分析需求與 repository。
+   - 在產生 execution manifest 前，先確認所有影響實作方向的技術選型已明確列入、引用既有定案文件，或完成決策。
    - 拆分任務、產生 execution manifest、建立 branch/worktree。
    - 指揮 OpenCode、Claude Code、Antigravity CLI。
    - 驗收 diff、lint、typecheck、test 與安全規則。
@@ -57,6 +58,7 @@ Hermes Gateway
 - 每個任務使用獨立 branch/worktree。
 - 不以 Syncthing、共享磁碟或網路資料夾同步正在修改的工作樹。
 - Hermes 只建立 task envelope；execution manifest 由 Codex 根據 repo 狀態產生。
+- 所有會影響實作方向的技術選型，必須在 execution manifest 產生前先明確列入、引用既有定案文件，或完成決策。
 - Agent 的文字回覆不是完成證明；Git diff、commit 與測試才是。
 - Hermes 或 Codex 不會憑空知道 Antigravity 的 5 小時或 7 天限制。
 - 同一 Google 帳號登入多台主機通常仍共享同一 quota pool。
@@ -465,6 +467,8 @@ Codex/Hermes 不搬移登入 token，而是透過 SSH 到已登入主機執行 C
 ## 10. Task Envelope 與 Execution Manifest
 
 Hermes 只建立 `task envelope`，負責描述使用者需求、來源與流程控制資訊；Codex 讀取 envelope 與 repository 後，再產生可執行的 `execution manifest`。
+
+在 `execution manifest` 產生前，所有會影響實作方向的技術選型，例如程式語言、框架、資料層、狀態管理、API 整合方式、執行環境與部署邊界，都必須先明確列入、引用既有定案文件，或完成決策；若技術選型尚未定案或彼此衝突，不得直接派工。
 
 ### 10.1 Task Envelope（Hermes 產生）
 

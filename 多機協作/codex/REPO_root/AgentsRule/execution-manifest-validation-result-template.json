@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "TASK-20260718-001",
+  "validated_at": "2026-07-18T12:30:00+08:00",
+  "validated_by": "codex",
+  "manifest_path": "多機協作/codex/examples/TASK-20260718-001.execution-manifest.json",
+  "manifest_validation": {
+    "encoding": "pass",
+    "json_parse": "pass",
+    "schema": "pass",
+    "module_design": "pass",
+    "dependency_graph": "pass",
+    "dispatch_readiness": "pass"
+  },
+  "summary": {
+    "module_count": 3,
+    "warning_count": 0,
+    "error_count": 0,
+    "dispatch_allowed": true
+  },
+  "warnings": [],
+  "errors": [],
+  "module_results": [
+    {
+      "module_id": "orders.route.query",
+      "status": "pass",
+      "checks": {
+        "single_responsibility": "pass",
+        "inputs_defined": "pass",
+        "outputs_defined": "pass",
+        "side_effects_declared": "pass",
+        "dependencies_valid": "pass",
+        "acceptance_ready": "pass"
+      },
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "module_id": "orders.service.query",
+      "status": "pass",
+      "checks": {
+        "single_responsibility": "pass",
+        "inputs_defined": "pass",
+        "outputs_defined": "pass",
+        "side_effects_declared": "pass",
+        "dependencies_valid": "pass",
+        "acceptance_ready": "pass"
+      },
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "module_id": "orders.repository.find_by_id",
+      "status": "pass",
+      "checks": {
+        "single_responsibility": "pass",
+        "inputs_defined": "pass",
+        "outputs_defined": "pass",
+        "side_effects_declared": "pass",
+        "dependencies_valid": "pass",
+        "acceptance_ready": "pass"
+      },
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "next_action": {
+    "action": "dispatch",
+    "reason": "manifest validation passed"
+  }
+}

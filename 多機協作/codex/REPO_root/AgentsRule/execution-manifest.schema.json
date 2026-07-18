@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/execution-manifest.schema.json",
+  "title": "Execution Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "project",
+    "request",
+    "base_ref",
+    "allowed_paths",
+    "denied_paths",
+    "acceptance_commands",
+    "timeout_seconds",
+    "must_commit",
+    "fallback_agents",
+    "modules"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^TASK-[0-9]{8}-[0-9]{3,}$"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "allowed_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "denied_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "acceptance_commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 14400
+    },
+    "must_commit": {
+      "type": "boolean"
+    },
+    "fallback_agents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/agent"
+      },
+      "uniqueItems": true
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/module"
+      }
+    }
+  },
+  "$defs": {
+    "agent": {
+      "type": "string",
+      "enum": [
+        "opencode",
+        "claude",
+        "antigravity",
+        "codex"
+      ]
+    },
+    "pathArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "source",
+        "required",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "kind",
+        "target",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "file",
+            "return",
+            "event",
+            "db-write",
+            "log"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sideEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "target",
+        "description"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "db-write",
+            "file-write",
+            "network-call",
+            "cache-invalidate",
+            "queue-publish",
+            "state-transition"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "moduleIdArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_id",
+        "name",
+        "responsibility",
+        "description",
+        "inputs",
+        "outputs",
+        "side_effects",
+        "upstream_dependencies",
+        "downstream_dependencies",
+        "allowed_paths",
+        "acceptance_commands",
+        "preferred_agent",
+        "fallback_agents"
+      ],
+      "properties": {
+        "module_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/input"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/output"
+          }
+        },
+        "side_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sideEffect"
+          }
+        },
+        "upstream_dependencies": {
+          "$ref": "#/$defs/moduleIdArray"
+        },
+        "downstream_dependencies": {
+          "$ref": "#/$defs/moduleIdArray"
+        },
+        "allowed_paths": {
+          "$ref": "#/$defs/pathArray"
+        },
+        "acceptance_commands": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "preferred_agent": {
+          "$ref": "#/$defs/agent"
+        },
+        "fallback_agents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/agent"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
