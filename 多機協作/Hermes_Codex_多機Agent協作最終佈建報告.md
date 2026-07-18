@@ -14,12 +14,13 @@
 
 1. **Hermes：控制平面**
    - 接收使用者指令。
+   - 建立 task envelope 並持久化任務。
    - 管理排程、重試、通知、記憶與 Worker 健康狀態。
    - 只呼叫固定 Dispatcher，不直接自由拼接 SSH 指令。
 
 2. **Codex CLI：軟體工程主管**
-   - 分析需求與 repository。
-   - 拆分任務、建立 branch/worktree。
+   - 根據 task envelope 分析需求與 repository。
+   - 拆分任務、產生 execution manifest、建立 branch/worktree。
    - 指揮 OpenCode、Claude Code、Antigravity CLI。
    - 驗收 diff、lint、typecheck、test 與安全規則。
    - 預設不得直接合併 `main`。
@@ -30,7 +31,7 @@
    - Antigravity CLI：使用遠端主機已登入 Google 帳號的額度，需額度探測與冷卻管理。
 
 4. **Dispatcher／Worker Wrapper：可靠性邊界**
-   - 統一 task manifest、輸出 JSON、逾時、錯誤碼、日誌、額度狀態與 Git 隔離。
+   - 統一 execution manifest、輸出 JSON、逾時、錯誤碼、日誌、額度狀態與 Git 隔離。
    - Hermes 與 Codex 不直接依賴各 CLI 的終端畫面文字。
 
 ```text
@@ -40,7 +41,7 @@
 Hermes Gateway
   ├── 任務 DB、排程、通知、重試
   └── Codex Supervisor
-        ├── task manifest / branch / worktree
+        ├── task envelope → execution manifest / branch / worktree
         ├── Dispatcher
         │     ├── SSH → OpenCode Worker
         │     ├── SSH → Claude Code Worker
@@ -55,6 +56,7 @@ Hermes Gateway
 - 每台 Worker 使用獨立 repository clone。
 - 每個任務使用獨立 branch/worktree。
 - 不以 Syncthing、共享磁碟或網路資料夾同步正在修改的工作樹。
+- Hermes 只建立 task envelope；execution manifest 由 Codex 根據 repo 狀態產生。
 - Agent 的文字回覆不是完成證明；Git diff、commit 與測試才是。
 - Hermes 或 Codex 不會憑空知道 Antigravity 的 5 小時或 7 天限制。
 - 同一 Google 帳號登入多台主機通常仍共享同一 quota pool。
@@ -285,10 +287,10 @@ Hermes 規則：
 - You are the control-plane coordinator, not the final code reviewer.
 - Use only /srv/hermes-control/bin/dispatch-task.
 - Never construct arbitrary SSH commands.
-- Persist every task before dispatch.
+- Persist every task envelope before Codex planning and dispatch.
 - Do not retry quota_exhausted before retry_after.
 - Delegate code review and acceptance to Codex.
-- Never store credentials in memory, prompts, logs, or task manifests.
+- Never store credentials in memory, prompts, logs, task envelopes, or execution manifests.
 - Require human approval for production deployment, destructive migration, secret rotation and main merge.
 ```
 
@@ -460,12 +462,31 @@ Codex/Hermes 不搬移登入 token，而是透過 SSH 到已登入主機執行 C
 
 ---
 
-## 10. Task Manifest
+## 10. Task Envelope 與 Execution Manifest
+
+Hermes 只建立 `task envelope`，負責描述使用者需求、來源與流程控制資訊；Codex 讀取 envelope 與 repository 後，再產生可執行的 `execution manifest`。
+
+### 10.1 Task Envelope（Hermes 產生）
 
 ```json
 {
   "task_id": "TASK-20260717-001",
   "project": "YOUR_REPO",
+  "request": "新增訂單查詢 API 並補測試",
+  "source": "telegram",
+  "priority": "normal",
+  "requires_human_approval": false,
+  "created_at": "2026-07-17T09:00:00+08:00"
+}
+```
+
+### 10.2 Execution Manifest（Codex 產生）
+
+```json
+{
+  "task_id": "TASK-20260717-001",
+  "project": "YOUR_REPO",
+  "request": "新增訂單查詢 API 並補測試",
   "base_ref": "origin/main",
   "agent": "opencode",
   "worker_id": "opencode-01",
@@ -479,7 +500,155 @@ Codex/Hermes 不搬移登入 token，而是透過 SSH 到已登入主機執行 C
 }
 ```
 
-Dispatcher 必須驗證 schema、project allowlist、agent allowlist、path、命令及 timeout。
+Dispatcher 必須驗證 execution manifest 的 schema、project allowlist、agent allowlist、path、命令及 timeout；Hermes 則必須驗證 task envelope 的基本 schema 與必填欄位。
+
+### 10.3 最小 JSON Schema 草案
+
+`task envelope` 最小 schema：
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "project",
+    "request",
+    "source",
+    "priority",
+    "requires_human_approval",
+    "created_at"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^TASK-[0-9]{8}-[0-9]{3,}$"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "enum": ["telegram", "web", "cli", "api", "manual"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"]
+    },
+    "requires_human_approval": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
+```
+
+`execution manifest` 最小 schema：
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "project",
+    "request",
+    "base_ref",
+    "agent",
+    "worker_id",
+    "prompt",
+    "allowed_paths",
+    "denied_paths",
+    "acceptance_commands",
+    "timeout_seconds",
+    "must_commit",
+    "fallback_agents"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^TASK-[0-9]{8}-[0-9]{3,}$"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent": {
+      "type": "string",
+      "enum": ["opencode", "claude", "antigravity", "codex"]
+    },
+    "worker_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "allowed_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "denied_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "acceptance_commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 14400
+    },
+    "must_commit": {
+      "type": "boolean"
+    },
+    "fallback_agents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["opencode", "claude", "antigravity", "codex"]
+      },
+      "uniqueItems": true
+    }
+  }
+}
+```
+
+實作建議：
+
+1. Hermes 只驗證 `task envelope` schema，不推導 `allowed_paths` 或 `acceptance_commands`。
+2. Codex 先讀取 envelope，再產生並驗證 `execution manifest`。
+3. Dispatcher 只接受 schema 驗證通過的 `execution manifest`。
 
 ---
 
@@ -681,10 +850,10 @@ workers:
 
 Dispatcher 必須：
 
-1. 驗證 task schema。
+1. 驗證 execution manifest schema。
 2. 查詢 Worker 狀態與 cooldown。
 3. 建立獨立 branch/worktree。
-4. 將 task 透過 stdin 或受控檔案傳送。
+4. 將 execution manifest 透過 stdin 或受控檔案傳送。
 5. 使用 `timeout`/cgroup 限制執行時間。
 6. 收集 stdout/stderr。
 7. 驗證結果 JSON。
@@ -698,39 +867,30 @@ Dispatcher 必須：
 
 ## 14. 狀態資料庫
 
-SQLite MVP：
+資料庫在本計劃中扮演「真實狀態來源」，用來承接 Hermes 不應放在 Memory 裡的調度與執行狀態。Hermes Memory 僅作輔助上下文；真正影響派工、阻塞、驗收與恢復的資訊，必須以 DB 為準。
 
-```sql
-CREATE TABLE worker_state (
-  worker_id TEXT PRIMARY KEY,
-  agent TEXT NOT NULL,
-  account_pool TEXT,
-  enabled INTEGER NOT NULL DEFAULT 1,
-  health TEXT NOT NULL DEFAULT 'unknown',
-  quota_window TEXT,
-  retry_after TEXT,
-  last_probe_at TEXT,
-  last_error TEXT,
-  updated_at TEXT NOT NULL
-);
+資料庫至少需要覆蓋三類資訊：
 
-CREATE TABLE tasks (
-  task_id TEXT PRIMARY KEY,
-  project TEXT NOT NULL,
-  agent TEXT,
-  worker_id TEXT,
-  status TEXT NOT NULL,
-  branch TEXT,
-  base_sha TEXT,
-  result_sha TEXT,
-  created_at TEXT NOT NULL,
-  started_at TEXT,
-  finished_at TEXT,
-  result_path TEXT
-);
-```
+1. 任務流程真相：例如 `task envelope`、人工核准需求、任務來源與優先級。
+2. 工程執行真相：例如 `execution manifest`、目前 phase、派工對象、執行結果與驗收狀態。
+3. Worker 狀態真相：例如健康狀態、quota/cooldown、登入失效、最近 probe 與可否派工。
 
-多控制節點或高並行時改用 PostgreSQL，並加入 row lock／lease。
+角色分工上，Hermes 主要依賴資料庫進行排程、通知、阻塞與恢復判斷；Codex 依賴資料庫確認任務已規劃、已派工、已進入驗收或已完成；Dispatcher / Wrapper 則負責把執行期事實回寫到資料庫，避免 Hermes 與 Codex 只能靠 CLI 終端文字推測狀態。
+
+狀態模型上，資料庫應能表達至少以下三種概念：
+
+- 流程核准狀態：任務是否需要人工核准、是否已核准。
+- 任務階段狀態：例如 `enveloped`、`planned`、`dispatched`、`running`、`reviewing`、`accepted`、`failed`、`blocked`。
+- Worker 可用性狀態：例如健康、停用、quota 冷卻、登入失效。
+
+這樣的設計目的，是讓系統在以下情境仍能維持可判斷性：
+
+- Hermes 重啟後仍能恢復任務現況。
+- 同一帳號的多個 Worker 共享 quota pool 時，能集中判斷 cooldown。
+- Codex 驗收前後能對齊任務 phase，而不是依賴口頭回報。
+- 人工核准、阻塞、fallback、重試策略都有可追溯狀態來源。
+
+MVP 可先使用 SQLite；若未來進入多控制節點或高併發，再升級到 PostgreSQL 並加入更強的 lease / locking 機制。資料庫具體表結構、migration、索引與佈建步驟，移至獨立文件 [Hermes_Codex_資料庫實作佈建指南.md](</D:/test/opencode/MyAppDesign/多機協作/Hermes_Codex_資料庫實作佈建指南.md>)。
 
 ---
 
@@ -738,7 +898,7 @@ CREATE TABLE tasks (
 
 Worker 回傳 `completed` 後，Codex 必須：
 
-1. 確認 task manifest 與 base commit。
+1. 確認 execution manifest 與 base commit。
 2. 檢查 changed files 是否超出 `allowed_paths`。
 3. 掃描秘密、危險 workflow、未知 binary 與 dependency 變更。
 4. 閱讀完整 diff。
@@ -815,7 +975,8 @@ Worker 回傳 `completed` 後，Codex 必須：
 
 ```text
 logs/TASK-ID/
-├── task.json
+├── task-envelope.json
+├── execution-manifest.json
 ├── prompt.txt
 ├── dispatcher.stderr
 ├── worker.stdout
@@ -843,7 +1004,7 @@ logs/TASK-ID/
 
 ### Phase 2：OpenCode MVP
 
-先完成 task manifest、Dispatcher、OpenCode wrapper、worktree、JSON 與 Codex 驗收。連續執行 20 個測試任務，確認沒有工作樹污染、越界或狀態遺失。
+先完成 task envelope、execution manifest、Dispatcher、OpenCode wrapper、worktree、JSON 與 Codex 驗收。連續執行 20 個測試任務，確認沒有工作樹污染、越界或狀態遺失。
 
 ### Phase 3：Claude Code
 
@@ -898,10 +1059,10 @@ Chaos 測試：
 新任務：
 
 1. 使用者向 Hermes 提交目標。
-2. Hermes 建立 task manifest。
+2. Hermes 建立 task envelope。
 3. 高風險任務先人工核准。
-4. Codex 檢查與拆分。
-5. Dispatcher 選擇 Worker。
+4. Codex 檢查 envelope、分析 repo，並產生 execution manifest。
+5. Dispatcher 依 execution manifest 選擇 Worker。
 6. Worker 執行。
 7. Codex 驗收。
 8. Hermes 通知。
