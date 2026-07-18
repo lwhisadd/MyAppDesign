@@ -11,9 +11,10 @@
 1. 讀取 Hermes 建立的 `task envelope`
 2. 分析 repository 與需求範圍
 3. 產生 `execution manifest`
-4. 透過核准的 Dispatcher 派工給 Worker
-5. 驗收 Worker 產出的 diff、測試結果與安全風險
-6. 產出機器可讀與人類可讀的最終結果
+4. 制定 worker 預檢規則、判讀預檢結果、裁決是否准派或改派
+5. 透過核准的 Dispatcher 派工給 Worker
+6. 驗收 Worker 產出的 diff、測試結果與安全風險
+7. 產出機器可讀與人類可讀的最終結果
 
 ## 編碼規則
 
@@ -40,11 +41,12 @@
 
 1. Hermes 建立 `task envelope`
 2. Codex 讀取 envelope 與 repository
-3. Codex 產生 `execution manifest`
-4. Dispatcher 根據 manifest 派工
-5. Worker 執行並回傳結果
-6. Codex 做最終驗收
-7. Hermes 根據結果通知與排程後續流程
+3. Codex 產生 `execution manifest`，並定義 `dispatch_policy`
+4. Wrapper 根據 `dispatch_policy` 執行 runtime preflight
+5. Dispatcher 根據 manifest、validation result、preflight result 決定是否派工或改派
+6. Worker 執行並回傳結果
+7. Codex 做最終驗收
+8. Hermes 根據結果通知與排程後續流程
 
 ## Execution Manifest 模組化規則
 
@@ -66,6 +68,14 @@
 10. 若某模組無法獨立驗收，視為拆分不完整，必須重新拆解。
 11. `execution manifest` 的設計目標不只是可執行，也必須可追溯、可派工、可驗收、可回滾。
 
+## 程式碼品質與開發流程原則
+
+1. 預設應遵守 `SOLID` 原則，特別是單一職責、依賴反轉與擴充邊界清晰。
+2. 預設應遵守 `Clean Code` 的命名與函式規範，包括語意化命名、避免過長函式、避免混合多重責任。
+3. 預設採用 `TDD` 作為開發方式：先寫失敗測試，再做最小實作，最後重構。
+4. 若任務性質不適合先寫測試，必須在 `execution manifest` 或結果中明確說明原因，並提供替代驗證方式。
+5. 結構性變更（重構）與行為性變更（新功能或修 bug）不應混在同一次 commit，除非 manifest 已明確說明且驗收可追溯。
+
 ## Manifest 文件分工
 
 與 `task envelope`、`execution manifest` 相關的文件，分工如下：
@@ -77,8 +87,9 @@
 5. `AgentsRule/execution-manifest-錯誤範例集.md`：列出常見不合格 manifest 與退回修正條件
 6. `AgentsRule/execution-manifest-驗證流程說明.md`：定義驗證順序、判斷流程與派工前檢查
 7. `AgentsRule/execution-manifest-validation-result-template.json`：定義 manifest 驗證結果的輸出格式範本
-8. `AgentsRule/task-artifact-structure.md`：定義 task 目錄結構、檔名慣例與產物保存要求
-9. `AgentsRule/task-artifact-example-tree.md`：提供可直接照抄的 task 目錄範例樹
+8. `AgentsRule/worker-preflight-result-template.json`：定義 Wrapper 預檢結果的輸出格式範本
+9. `AgentsRule/task-artifact-structure.md`：定義 task 目錄結構、檔名慣例與產物保存要求
+10. `AgentsRule/task-artifact-example-tree.md`：提供可直接照抄的 task 目錄範例樹
 
 使用原則：
 
@@ -87,8 +98,9 @@
 3. 做結構驗證時，應使用 `AgentsRule/execution-manifest.schema.json` 與 `AgentsRule/task-envelope.schema.json`。
 4. 判斷 manifest 是否應退回修正時，應參照錯誤範例集與驗證流程說明。
 5. 產出 manifest 驗證結果時，應盡量符合 `AgentsRule/execution-manifest-validation-result-template.json`。
-6. 保存 task 產物時，應遵守 `AgentsRule/task-artifact-structure.md` 的目錄與檔名規範。
-7. 若需要建立 task 目錄樣板，應參照 `AgentsRule/task-artifact-example-tree.md`。
+6. 產出 Worker 預檢結果時，應盡量符合 `AgentsRule/worker-preflight-result-template.json`。
+7. 保存 task 產物時，應遵守 `AgentsRule/task-artifact-structure.md` 的目錄與檔名規範。
+8. 若需要建立 task 目錄樣板，應參照 `AgentsRule/task-artifact-example-tree.md`。
 
 ## Branch 與 Worktree 規則
 
@@ -104,7 +116,8 @@
 2. 只能透過核准的 Dispatcher 入口派工。
 3. 若 Dispatcher、manifest、worker 狀態三者任一不完整，禁止派工。
 4. `execution manifest` 在派工前，必須先完成驗證，並產出對應的 validation result。
-5. 只有當 validation result 明確顯示 `dispatch_allowed = true` 時，才可派工。
+5. `dispatch_policy` 必須明確指定：預檢規則由 `ctrl-codex` 制定、runtime preflight 由 Wrapper 執行、派工動作由 Dispatcher 執行。
+6. 只有當 validation result 明確顯示 `dispatch_allowed = true`，且 Wrapper 預檢結果顯示可用時，才可派工。
 
 核准入口：
 
@@ -123,6 +136,9 @@
 5. tests 通過
 6. 未引入危險 workflow、秘密外洩、未知 binary 或不合理 dependency 變更
 7. commit SHA 已記錄
+8. 變更是否破壞 `SOLID` 原則，特別是單一職責、依賴方向與模組邊界
+9. 命名與函式切分是否符合 `Clean Code`，避免模糊命名、過長函式與混合責任
+10. 測試是否覆蓋核心邏輯；若宣稱採用 `TDD`，是否至少存在可追溯的測試先行證據或明確說明例外原因
 
 ## 阻塞條件
 
@@ -169,5 +185,6 @@
 
 1. `execution manifest`
 2. `manifest validation result`
-3. `review result`
-4. `human-readable summary`
+3. `worker preflight result`
+4. `review result`
+5. `human-readable summary`

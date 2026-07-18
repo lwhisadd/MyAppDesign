@@ -15,6 +15,7 @@ TASK-20260718-001/
 ├── task-envelope.json
 ├── execution-manifest.json
 ├── manifest-validation-result.json
+├── worker-preflight-result.json
 ├── dispatcher.stderr
 ├── worker.stdout
 ├── worker.stderr
@@ -43,6 +44,7 @@ TASK-20260718-001/
 ├── task-envelope.json
 ├── execution-manifest.json
 ├── manifest-validation-result.json
+├── worker-preflight-result.json
 ├── result.json
 ├── changed-files.txt
 ├── changes.patch
@@ -86,6 +88,7 @@ TASK-20260718-001/
 - `task-envelope.json`
 - `execution-manifest.json`
 - `manifest-validation-result.json`
+- `worker-preflight-result.json`
 - `result.json`
 - `acceptance.json`
 - `codex-review.json`
@@ -132,6 +135,10 @@ TASK-20260718-001/
 - `worker.stdout`
 - `worker.stderr`
 
+保存派工前預檢輸出：
+
+- `worker-preflight-result.json`
+
 ### `modules/`
 
 保存模組級驗證、驗收、審查與補充結果。
@@ -156,12 +163,13 @@ TASK-20260718-001/
 
 1. `execution-manifest.json`
 2. `manifest-validation-result.json`
-3. `result.json`
-4. `acceptance.json`
-5. `codex-review.json`
-6. `codex-review.md`
-7. `changed-files.txt`
-8. `changes.patch`
+3. `worker-preflight-result.json`
+4. `result.json`
+5. `acceptance.json`
+6. `codex-review.json`
+7. `codex-review.md`
+8. `changed-files.txt`
+9. `changes.patch`
 
 ---
 
@@ -172,8 +180,9 @@ TASK-20260718-001/
 1. 檔案只存在對話紀錄，未落地保存
 2. `execution manifest` 有多個版本，但沒有明確版本檔名
 3. review 只有 Markdown，沒有機器可讀 JSON
-4. 只有 `worker.stdout`，沒有 `manifest-validation-result.json`
-5. patch 沒有保存
+4. 已正式派工，但沒有 `worker-preflight-result.json`
+5. 只有 `worker.stdout`，沒有 `manifest-validation-result.json`
+6. patch 沒有保存
 
 ---
 
@@ -181,12 +190,14 @@ TASK-20260718-001/
 
 本文件應搭配以下文件使用：
 
-1. `多機協作/codex/AGENTS.md`
-2. `多機協作/codex/task-artifact-structure.md`
-3. `多機協作/codex/execution-manifest-validation-result-template.json`
+1. `../AGENTS.md`
+2. `task-artifact-structure.md`
+3. `execution-manifest-validation-result-template.json`
+4. `worker-preflight-result-template.json`
 
 文件分工：
 
 1. `AGENTS.md`：定義硬規則與交付要求
 2. `task-artifact-structure.md`：定義目錄與檔名規範
-3. 本文件：提供可直接照抄的範例樹
+3. `worker-preflight-result-template.json`：提供預檢結果欄位範本
+4. 本文件：提供可直接照抄的範例樹

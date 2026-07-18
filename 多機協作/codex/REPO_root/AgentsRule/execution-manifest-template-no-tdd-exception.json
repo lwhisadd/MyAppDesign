@@ -1,0 +1,219 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "TASK-20260718-002",
+  "project": "YOUR_REPO",
+  "request": "新增 SQLite 初始化 migration 與資料庫佈建文件",
+  "tech_decisions": [
+    {
+      "topic": "database",
+      "decision": "SQLite as MVP state store",
+      "source": "多機協作/Hermes_Codex_多機Agent協作最終佈建報告.md"
+    },
+    {
+      "topic": "migration-strategy",
+      "decision": "Use SQL migration file plus smoke test verification",
+      "source": "多機協作/Hermes_Codex_資料庫實作佈建指南.md"
+    }
+  ],
+  "development_process": {
+    "tdd_required": false,
+    "tdd_exception_reason": "本任務包含文件整理與一次性 migration 草案，不適合先以失敗測試驅動；改採 migration 驗證與 smoke test 作為主要驗證方式。",
+    "verification_strategy": "schema-validation-and-smoke-test"
+  },
+  "commit_rules": {
+    "separate_refactor_from_behavior": true
+  },
+  "dispatch_policy": {
+    "preflight_required": true,
+    "preflight_rule_owner": "ctrl-codex",
+    "preflight_execution_owner": "wrapper",
+    "dispatch_execution_owner": "dispatcher",
+    "required_checks": [
+      "health",
+      "auth",
+      "quota",
+      "cooldown",
+      "rate_limit"
+    ],
+    "block_dispatch_when_unavailable": true
+  },
+  "base_ref": "origin/main",
+  "allowed_paths": [
+    "多機協作",
+    "scripts/db",
+    "docs/db"
+  ],
+  "denied_paths": [
+    ".git",
+    ".github/workflows",
+    ".env",
+    "secrets"
+  ],
+  "acceptance_commands": [
+    "sqlite3 --version",
+    "sqlite3 /tmp/example.db < scripts/db/001_init_sqlite.sql"
+  ],
+  "timeout_seconds": 1800,
+  "must_commit": true,
+  "fallback_agents": [
+    "claude",
+    "codex"
+  ],
+  "modules": [
+    {
+      "module_id": "db.sqlite.init_migration",
+      "name": "SQLite 初始化 migration",
+      "responsibility": "建立 SQLite MVP 初始 migration 檔",
+      "description": "輸出可執行的 SQL migration，建立 task_envelopes、task_executions、worker_state 等表與索引",
+      "inputs": [
+        {
+          "name": "database_design_doc",
+          "type": "markdown",
+          "source": "多機協作/Hermes_Codex_資料庫實作佈建指南.md",
+          "required": true,
+          "description": "資料庫佈建與欄位規格文件"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sqlite_migration_file",
+          "type": "sql",
+          "kind": "file",
+          "target": "scripts/db/001_init_sqlite.sql",
+          "description": "SQLite 初始化 migration 檔"
+        }
+      ],
+      "side_effects": [],
+      "upstream_dependencies": [],
+      "downstream_dependencies": [
+        "db.sqlite.smoke_test"
+      ],
+      "allowed_paths": [
+        "scripts/db"
+      ],
+      "acceptance_commands": [
+        "sqlite3 /tmp/example.db < scripts/db/001_init_sqlite.sql"
+      ],
+      "preferred_agent": "opencode",
+      "fallback_agents": [
+        "claude",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": false,
+        "tdd_exception_reason": "SQL migration 草案以可執行驗證取代先寫失敗測試。",
+        "verification_strategy": "migration-apply-check"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    },
+    {
+      "module_id": "db.sqlite.smoke_test",
+      "name": "SQLite smoke test",
+      "responsibility": "驗證 migration 可建立資料庫結構並可進行基本寫入",
+      "description": "以臨時資料庫執行 migration，檢查表與索引是否建立成功，並跑最小插入 / rollback 驗證",
+      "inputs": [
+        {
+          "name": "sqlite_migration_file",
+          "type": "sql",
+          "source": "db.sqlite.init_migration",
+          "required": true,
+          "description": "初始化 migration 檔"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "smoke_test_report",
+          "type": "json",
+          "kind": "file",
+          "target": "docs/db/sqlite-smoke-test.json",
+          "description": "smoke test 驗證結果"
+        }
+      ],
+      "side_effects": [
+        {
+          "type": "file-write",
+          "target": "/tmp/example.db",
+          "description": "建立臨時 SQLite 測試資料庫"
+        }
+      ],
+      "upstream_dependencies": [
+        "db.sqlite.init_migration"
+      ],
+      "downstream_dependencies": [
+        "db.docs.update"
+      ],
+      "allowed_paths": [
+        "docs/db",
+        "scripts/db"
+      ],
+      "acceptance_commands": [
+        "sqlite3 /tmp/example.db < scripts/db/001_init_sqlite.sql",
+        "sqlite3 /tmp/example.db \".tables\""
+      ],
+      "preferred_agent": "opencode",
+      "fallback_agents": [
+        "claude",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": false,
+        "tdd_exception_reason": "本模組以可執行 smoke test 取代單元測試先行。",
+        "verification_strategy": "runtime-smoke-test"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    },
+    {
+      "module_id": "db.docs.update",
+      "name": "資料庫文件更新",
+      "responsibility": "更新資料庫佈建與驗證說明文件",
+      "description": "整理 migration、smoke test、產物路徑與完成定義說明",
+      "inputs": [
+        {
+          "name": "smoke_test_report",
+          "type": "json",
+          "source": "db.sqlite.smoke_test",
+          "required": true,
+          "description": "SQLite smoke test 結果"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "database_docs",
+          "type": "markdown",
+          "kind": "file",
+          "target": "docs/db/README.md",
+          "description": "資料庫佈建與驗證文件"
+        }
+      ],
+      "side_effects": [],
+      "upstream_dependencies": [
+        "db.sqlite.smoke_test"
+      ],
+      "downstream_dependencies": [],
+      "allowed_paths": [
+        "docs/db",
+        "多機協作"
+      ],
+      "acceptance_commands": [
+        "rg \"smoke test|migration|SQLite\" docs/db/README.md"
+      ],
+      "preferred_agent": "claude",
+      "fallback_agents": [
+        "opencode",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": false,
+        "tdd_exception_reason": "文件更新屬非程式行為變更，以內容檢查與交叉引用驗證取代 TDD。",
+        "verification_strategy": "documentation-consistency-check"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    }
+  ]
+}

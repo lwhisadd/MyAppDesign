@@ -3,7 +3,7 @@
   "task_id": "TASK-20260718-001",
   "validated_at": "2026-07-18T12:30:00+08:00",
   "validated_by": "codex",
-  "manifest_path": "多機協作/codex/examples/TASK-20260718-001.execution-manifest.json",
+  "manifest_path": "TASK-20260718-001/execution-manifest.json",
   "manifest_validation": {
     "encoding": "pass",
     "json_parse": "pass",
@@ -11,6 +11,14 @@
     "module_design": "pass",
     "dependency_graph": "pass",
     "dispatch_readiness": "pass"
+  },
+  "dispatch_gate": {
+    "manifest_dispatch_eligible": true,
+    "runtime_preflight_required": true,
+    "preflight_rule_owner": "ctrl-codex",
+    "preflight_execution_owner": "wrapper",
+    "dispatch_execution_owner": "dispatcher",
+    "runtime_preflight_status": "pending"
   },
   "summary": {
     "module_count": 3,
@@ -65,7 +73,7 @@
     }
   ],
   "next_action": {
-    "action": "dispatch",
-    "reason": "manifest validation passed"
+    "action": "run_wrapper_preflight",
+    "reason": "manifest validation passed and runtime preflight is required before dispatch"
   }
 }

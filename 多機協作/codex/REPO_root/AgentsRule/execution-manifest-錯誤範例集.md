@@ -32,6 +32,7 @@
 8. 路徑範圍過寬
 9. 驗收命令不足
 10. 結構符合 schema，但語意不合理
+11. `dispatch_policy` 缺漏或責任分工錯誤
 
 ---
 
@@ -286,6 +287,50 @@ orders.repository.find_by_id
 
 1. 補充 migration dry-run 或 schema diff 檢查
 2. 若有資料風險，補充 rollback 或驗證步驟
+
+---
+
+### 範例 I：缺少 `dispatch_policy` 或把預檢責任寫錯
+
+```json
+{
+  "schema_version": "1.0.0",
+  "task_id": "TASK-20260718-003",
+  "project": "YOUR_REPO",
+  "request": "調整訂單查詢模組",
+  "tech_decisions": [
+    {
+      "topic": "backend-api",
+      "decision": "EasyAPI as the only REST API",
+      "source": "前台選型/討論1.md"
+    }
+  ],
+  "development_process": {
+    "tdd_required": true,
+    "tdd_exception_reason": "",
+    "verification_strategy": "unit-and-integration-tests"
+  },
+  "commit_rules": {
+    "separate_refactor_from_behavior": true
+  },
+  "dispatch_policy": {
+    "preflight_required": true,
+    "preflight_rule_owner": "worker",
+    "preflight_execution_owner": "codex",
+    "dispatch_execution_owner": "worker",
+    "required_checks": [],
+    "block_dispatch_when_unavailable": false
+  }
+}
+```
+
+問題：
+
+1. 預檢規則制定者錯寫為 `worker`
+2. 預檢執行者錯寫為 `codex`
+3. 派工執行者錯寫為 `worker`
+4. `required_checks` 為空，無法形成真正可執行的 preflight
+5. 會導致 `ctrl-codex`、Wrapper、Dispatcher 的責任邊界混亂
 
 ---
 

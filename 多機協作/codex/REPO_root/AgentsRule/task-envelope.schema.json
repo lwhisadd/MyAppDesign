@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.local/schemas/task-envelope.schema.json",
   "title": "Task Envelope",
+  "description": "Task envelope 只保存使用者需求與流程控制資訊；runtime preflight 規則、預檢結果與派工裁決屬於 execution manifest、Wrapper 與 Dispatcher 範圍。",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "TASK-20260718-001",
+  "project": "YOUR_REPO",
+  "request": "新增訂單查詢 API 並補測試",
+  "tech_decisions": [
+    {
+      "topic": "frontend-framework",
+      "decision": "Next.js App Router",
+      "source": "前台選型/討論1.md"
+    },
+    {
+      "topic": "backend-api",
+      "decision": "EasyAPI as the only REST API",
+      "source": "前台選型/討論1.md"
+    },
+    {
+      "topic": "state-management",
+      "decision": "TanStack Query for server state and Zustand for client UI state",
+      "source": "前台選型/討論1.md"
+    }
+  ],
+  "development_process": {
+    "tdd_required": true,
+    "tdd_exception_reason": "",
+    "verification_strategy": "unit-and-integration-tests"
+  },
+  "commit_rules": {
+    "separate_refactor_from_behavior": true
+  },
+  "dispatch_policy": {
+    "preflight_required": true,
+    "preflight_rule_owner": "ctrl-codex",
+    "preflight_execution_owner": "wrapper",
+    "dispatch_execution_owner": "dispatcher",
+    "required_checks": [
+      "health",
+      "auth",
+      "quota",
+      "cooldown",
+      "rate_limit"
+    ],
+    "block_dispatch_when_unavailable": true
+  },
+  "base_ref": "origin/main",
+  "allowed_paths": [
+    "src/orders",
+    "tests/orders"
+  ],
+  "denied_paths": [
+    ".git",
+    ".github/workflows",
+    ".env",
+    "secrets"
+  ],
+  "acceptance_commands": [
+    "npm run lint",
+    "npm run typecheck",
+    "npm test"
+  ],
+  "timeout_seconds": 3600,
+  "must_commit": true,
+  "fallback_agents": [
+    "claude",
+    "codex"
+  ],
+  "modules": [
+    {
+      "module_id": "orders.route.query",
+      "name": "訂單查詢路由",
+      "responsibility": "提供單筆訂單查詢 API 路由入口",
+      "description": "建立 GET /orders/:id 路由並交由 service 層處理",
+      "inputs": [
+        {
+          "name": "order_id",
+          "type": "string",
+          "source": "http request path",
+          "required": true,
+          "description": "訂單編號"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_body",
+          "type": "json",
+          "kind": "return",
+          "target": "HTTP response",
+          "description": "回傳訂單資料"
+        }
+      ],
+      "side_effects": [],
+      "upstream_dependencies": [],
+      "downstream_dependencies": [
+        "orders.service.query"
+      ],
+      "allowed_paths": [
+        "src/orders/routes",
+        "tests/orders/routes"
+      ],
+      "acceptance_commands": [
+        "npm test -- orders-route"
+      ],
+      "preferred_agent": "opencode",
+      "fallback_agents": [
+        "claude",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": true,
+        "tdd_exception_reason": "",
+        "verification_strategy": "route-level-tests"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    },
+    {
+      "module_id": "orders.service.query",
+      "name": "訂單查詢服務",
+      "responsibility": "查詢訂單資料並回傳標準結構",
+      "description": "封裝訂單查詢服務邏輯",
+      "inputs": [
+        {
+          "name": "order_id",
+          "type": "string",
+          "source": "orders.route.query",
+          "required": true,
+          "description": "訂單編號"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "order_payload",
+          "type": "json",
+          "kind": "return",
+          "target": "service return value",
+          "description": "標準化訂單資料"
+        }
+      ],
+      "side_effects": [],
+      "upstream_dependencies": [
+        "orders.route.query"
+      ],
+      "downstream_dependencies": [
+        "orders.repository.find_by_id"
+      ],
+      "allowed_paths": [
+        "src/orders/services",
+        "tests/orders/services"
+      ],
+      "acceptance_commands": [
+        "npm test -- orders-service"
+      ],
+      "preferred_agent": "claude",
+      "fallback_agents": [
+        "opencode",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": true,
+        "tdd_exception_reason": "",
+        "verification_strategy": "service-unit-tests"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    },
+    {
+      "module_id": "orders.repository.find_by_id",
+      "name": "訂單資料存取",
+      "responsibility": "依訂單編號查詢資料來源",
+      "description": "從 repository 層存取訂單資料",
+      "inputs": [
+        {
+          "name": "order_id",
+          "type": "string",
+          "source": "orders.service.query",
+          "required": true,
+          "description": "訂單編號"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "order_record",
+          "type": "json",
+          "kind": "return",
+          "target": "repository return value",
+          "description": "原始資料記錄"
+        }
+      ],
+      "side_effects": [],
+      "upstream_dependencies": [
+        "orders.service.query"
+      ],
+      "downstream_dependencies": [],
+      "allowed_paths": [
+        "src/orders/repositories",
+        "tests/orders/repositories"
+      ],
+      "acceptance_commands": [
+        "npm test -- orders-repository"
+      ],
+      "preferred_agent": "opencode",
+      "fallback_agents": [
+        "claude",
+        "codex"
+      ],
+      "development_process": {
+        "tdd_required": true,
+        "tdd_exception_reason": "",
+        "verification_strategy": "repository-unit-tests"
+      },
+      "commit_rules": {
+        "separate_refactor_from_behavior": true
+      }
+    }
+  ]
+}

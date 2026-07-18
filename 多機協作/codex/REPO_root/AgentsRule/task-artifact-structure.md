@@ -39,6 +39,7 @@ TASK-ID/
 ├── task-envelope.json
 ├── execution-manifest.json
 ├── manifest-validation-result.json
+├── worker-preflight-result.json
 ├── dispatcher.stderr
 ├── worker.stdout
 ├── worker.stderr
@@ -92,6 +93,18 @@ TASK-ID/
 
 - 其內容應盡量符合 `execution-manifest-validation-result-template.json`
 - 若 `dispatch_allowed != true`，禁止派工
+
+### `worker-preflight-result.json`
+
+用途：
+
+- 保存 Wrapper 執行 runtime preflight 的結果
+- 作為 Dispatcher 是否正式派工的直接依據
+
+要求：
+
+- 其內容應盡量符合 `worker-preflight-result-template.json`
+- 若 `preflight.available != true`，禁止正式派工
 
 ### `dispatcher.stderr`
 
@@ -178,6 +191,7 @@ TASK-ID/
    - `task-envelope.json`
    - `execution-manifest.json`
    - `manifest-validation-result.json`
+   - `worker-preflight-result.json`
 2. 執行產物
    - `worker.stdout`
    - `worker.stderr`
@@ -205,10 +219,11 @@ task 若宣告完成，task 目錄至少必須存在：
 
 1. `execution-manifest.json`
 2. `manifest-validation-result.json`
-3. `result.json`
-4. `acceptance.json`
-5. `codex-review.json`
-6. `codex-review.md`
+3. `worker-preflight-result.json`
+4. `result.json`
+5. `acceptance.json`
+6. `codex-review.json`
+7. `codex-review.md`
 
 若缺少上述任一項，視為交付不完整。
 
@@ -258,14 +273,16 @@ task 目錄中不得保存以下內容：
 
 本文件應搭配以下文件使用：
 
-1. `多機協作/codex/AGENTS.md`
-2. `多機協作/codex/execution-manifest-spec.md`
-3. `多機協作/codex/execution-manifest-驗證流程說明.md`
-4. `多機協作/codex/execution-manifest-validation-result-template.json`
+1. `../AGENTS.md`
+2. `execution-manifest-spec.md`
+3. `execution-manifest-驗證流程說明.md`
+4. `execution-manifest-validation-result-template.json`
+5. `worker-preflight-result-template.json`
 
 文件分工：
 
 1. `AGENTS.md`：硬規則與流程邊界
 2. `execution-manifest-spec.md`：manifest 欄位與語意
 3. `execution-manifest-驗證流程說明.md`：manifest 驗證流程
-4. 本文件：task 產物保存位置與檔名規範
+4. `worker-preflight-result-template.json`：runtime preflight 結果範本
+5. 本文件：task 產物保存位置與檔名規範

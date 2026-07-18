@@ -19,9 +19,11 @@
 1. Hermes 建立 `task envelope`
 2. Codex 讀取 `task envelope`、分析 repository、拆分模組
 3. Codex 產生 `execution manifest`
-4. Dispatcher 根據 `execution manifest` 派工
-5. Worker 執行模組工作
-6. Codex 驗收各模組產出與整體結果
+4. Codex 在 manifest 中定義 `dispatch_policy`
+5. Wrapper 根據 `dispatch_policy` 執行 runtime preflight
+6. Dispatcher 根據 `execution manifest`、validation result、preflight result 決定是否派工
+7. Worker 執行模組工作
+8. Codex 驗收各模組產出與整體結果
 
 `execution manifest` 是工程執行真相來源，不是單純備忘錄。
 
@@ -38,6 +40,10 @@
 5. 每個模組都必須標示上層依賴與下層依賴。
 6. 模組集合必須形成可追溯依賴圖。
 7. 若存在循環依賴、責任重疊或拆分不完整，必須在 manifest 產生階段修正。
+8. 所有影響實作方向的技術選型，必須在 manifest 中明確列入其決策來源。
+9. 若任務預設要求 `TDD`，必須在 manifest 中清楚標示；若不適用，必須寫明例外理由與替代驗證方式。
+10. 若要求將重構與行為變更分離，manifest 應明確聲明 commit 規則。
+11. manifest 必須明確聲明 runtime preflight 的責任分工與必要檢查，不可把即時 quota / auth 探測責任模糊留給 Worker 自行決定。
 
 ---
 
@@ -51,6 +57,29 @@
   "task_id": "TASK-20260718-001",
   "project": "YOUR_REPO",
   "request": "新增訂單查詢 API 並補測試",
+  "tech_decisions": [
+    {
+      "topic": "frontend-framework",
+      "decision": "Next.js App Router",
+      "source": "前台選型/討論1.md"
+    }
+  ],
+  "development_process": {
+    "tdd_required": true,
+    "tdd_exception_reason": "",
+    "verification_strategy": "unit-and-integration-tests"
+  },
+  "commit_rules": {
+    "separate_refactor_from_behavior": true
+  },
+  "dispatch_policy": {
+    "preflight_required": true,
+    "preflight_rule_owner": "ctrl-codex",
+    "preflight_execution_owner": "wrapper",
+    "dispatch_execution_owner": "dispatcher",
+    "required_checks": ["health", "auth", "quota", "cooldown", "rate_limit"],
+    "block_dispatch_when_unavailable": true
+  },
   "base_ref": "origin/main",
   "allowed_paths": ["src/orders", "tests/orders"],
   "denied_paths": [".git", ".github/workflows", ".env", "secrets"],
@@ -68,6 +97,10 @@
 - `task_id`：任務唯一 ID
 - `project`：專案名稱或識別值
 - `request`：使用者需求摘要
+- `tech_decisions`：本次任務依賴的技術選型與其決策來源
+- `development_process`：開發流程要求，例如是否強制 TDD、若例外時的理由、替代驗證策略
+- `commit_rules`：commit 層級規則，例如是否分離重構與行為變更
+- `dispatch_policy`：派工前預檢規則與責任分工，明確區分 `ctrl-codex`、Wrapper、Dispatcher 的責任
 - `base_ref`：基準分支或 ref
 - `allowed_paths`：允許修改路徑
 - `denied_paths`：禁止修改路徑
@@ -76,6 +109,28 @@
 - `must_commit`：是否必須產生 commit
 - `fallback_agents`：頂層 fallback agent 清單
 - `modules`：模組列表
+
+建議 `dispatch_policy` 結構：
+
+```json
+{
+  "preflight_required": true,
+  "preflight_rule_owner": "ctrl-codex",
+  "preflight_execution_owner": "wrapper",
+  "dispatch_execution_owner": "dispatcher",
+  "required_checks": ["health", "auth", "quota", "cooldown", "rate_limit"],
+  "block_dispatch_when_unavailable": true
+}
+```
+
+欄位說明：
+
+- `preflight_required`：是否要求 runtime preflight
+- `preflight_rule_owner`：預檢規則制定者，固定為 `ctrl-codex`
+- `preflight_execution_owner`：預檢執行者，固定為 `wrapper`
+- `dispatch_execution_owner`：派工執行者，固定為 `dispatcher`
+- `required_checks`：派工前必查項目
+- `block_dispatch_when_unavailable`：若預檢失敗，是否必須阻止正式派工
 
 ---
 
@@ -236,6 +291,29 @@
   "task_id": "TASK-20260718-001",
   "project": "YOUR_REPO",
   "request": "新增訂單查詢 API 並補測試",
+  "tech_decisions": [
+    {
+      "topic": "backend-api",
+      "decision": "EasyAPI as the only REST API",
+      "source": "前台選型/討論1.md"
+    }
+  ],
+  "development_process": {
+    "tdd_required": true,
+    "tdd_exception_reason": "",
+    "verification_strategy": "unit-and-integration-tests"
+  },
+  "commit_rules": {
+    "separate_refactor_from_behavior": true
+  },
+  "dispatch_policy": {
+    "preflight_required": true,
+    "preflight_rule_owner": "ctrl-codex",
+    "preflight_execution_owner": "wrapper",
+    "dispatch_execution_owner": "dispatcher",
+    "required_checks": ["health", "auth", "quota", "cooldown", "rate_limit"],
+    "block_dispatch_when_unavailable": true
+  },
   "base_ref": "origin/main",
   "allowed_paths": ["src/orders", "tests/orders"],
   "denied_paths": [".git", ".github/workflows", ".env", "secrets"],
@@ -355,6 +433,10 @@
 6. 模組依賴圖是否完整
 7. `allowed_paths` 是否過寬
 8. `acceptance_commands` 是否足以驗證模組
+9. `tech_decisions` 是否足以追溯本次任務依賴的技術選型
+10. `development_process` 是否明確說明 TDD 要求或例外原因
+11. `commit_rules` 是否足以限制重構與行為變更混雜
+12. `dispatch_policy` 是否明確指定預檢規則制定者、執行者、派工執行者與必要檢查
 
 ---
 

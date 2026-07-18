@@ -1,0 +1,35 @@
+{
+  "task_id": "TASK-20260718-001",
+  "agent": "claude",
+  "worker_id": "claude-01",
+  "checked_at": "2026-07-18T12:40:00+08:00",
+  "checked_by": "wrapper",
+  "preflight": {
+    "available": false,
+    "required_checks": [
+      "health",
+      "auth",
+      "quota",
+      "cooldown",
+      "rate_limit"
+    ],
+    "checks": {
+      "health": "pass",
+      "auth": "pass",
+      "quota": "fail",
+      "cooldown": "not_run",
+      "rate_limit": "not_run"
+    },
+    "reason": {
+      "category": "quota_exhausted",
+      "retry_after": "2026-07-18T18:00:00+08:00",
+      "raw_message_file": "logs/TASK-ID/wrapper.stderr"
+    },
+    "fallback_recommended": true
+  },
+  "next_action": {
+    "action": "fallback_or_queue",
+    "decision_owner": "ctrl-codex",
+    "execution_owner": "dispatcher"
+  }
+}
