@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>mattpocock/skills — 完整使用指南</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3348;
+      --accent: #6c8ef7;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --muted: #8892a8;
+      --code-bg: #12151f;
+      --tag-user: #1e3a5f;
+      --tag-user-text: #93c5fd;
+      --tag-model: #1e3d2f;
+      --tag-model-text: #6ee7b7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 32px 32px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    header h1 { font-size: 2rem; font-weight: 800; color: #fff; }
+    header h1 span { color: var(--accent); }
+    header p { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
+    header a { color: var(--accent); text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+
+    /* LAYOUT */
+    .layout { display: flex; max-width: 1300px; margin: 0 auto; }
+
+    /* SIDEBAR */
+    nav {
+      width: 260px; min-width: 260px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 16px;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    nav h3 { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin: 18px 0 8px; padding: 0 8px; }
+    nav a {
+      display: block; padding: 7px 12px; border-radius: 8px;
+      color: var(--muted); text-decoration: none; font-size: 0.88rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    nav a:hover, nav a.active { background: var(--surface2); color: var(--text); }
+    nav .badge {
+      float: right; font-size: 0.65rem; padding: 1px 6px; border-radius: 20px;
+      font-weight: 600;
+    }
+    nav .user-badge { background: var(--tag-user); color: var(--tag-user-text); }
+    nav .model-badge { background: var(--tag-model); color: var(--tag-model-text); }
+
+    /* CONTENT */
+    main { flex: 1; padding: 32px 40px; overflow-x: hidden; }
+
+    /* SECTION */
+    .section { margin-bottom: 56px; }
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-icon { font-size: 1.6rem; }
+    .section-header h2 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    .section-header p { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+
+    /* SKILL CARD */
+    .skill-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(540px, 1fr)); gap: 20px; }
+    .skill-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .skill-card:hover { border-color: var(--accent); }
+    .skill-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .skill-name {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .skill-name h3 { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .cmd {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.8rem; background: var(--code-bg);
+      color: var(--accent); padding: 2px 8px; border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .invoke-tag {
+      font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+    .user-tag { background: var(--tag-user); color: var(--tag-user-text); }
+    .model-tag { background: var(--tag-model); color: var(--tag-model-text); }
+
+    .skill-card-body { padding: 16px 20px; }
+    .skill-card-body p { color: #b8c0d0; font-size: 0.92rem; margin-bottom: 12px; }
+
+    .step-label {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    .steps ol { padding-left: 0; list-style: none; counter-reset: step; }
+    .steps ol li {
+      counter-increment: step;
+      display: flex; gap: 10px; margin-bottom: 8px;
+      font-size: 0.9rem; color: #c0cce0;
+    }
+    .steps ol li::before {
+      content: counter(step);
+      min-width: 22px; height: 22px; border-radius: 50%;
+      background: var(--surface2); color: var(--accent);
+      font-size: 0.75rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+
+    .tips { margin-top: 12px; }
+    .tip {
+      display: flex; gap: 8px; align-items: flex-start;
+      background: #1a2535; border-left: 3px solid var(--accent);
+      padding: 8px 12px; border-radius: 0 6px 6px 0;
+      font-size: 0.88rem; color: #93afd0; margin-bottom: 6px;
+    }
+    .tip-icon { flex-shrink: 0; font-size: 0.95rem; margin-top: 2px; }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: var(--code-bg); border: 1px solid var(--border);
+      padding: 1px 5px; border-radius: 4px; font-size: 0.85em;
+      color: var(--accent2);
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem; color: #a8d8a8; margin: 12px 0;
+    }
+
+    /* QUICKSTART BOX */
+    .quickstart {
+      background: linear-gradient(135deg, #1a1f35, #161b2e);
+      border: 1px solid var(--accent);
+      border-radius: 16px; padding: 28px 32px; margin-bottom: 40px;
+    }
+    .quickstart h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 16px; }
+    .quickstart ol { padding-left: 22px; }
+    .quickstart ol li { margin-bottom: 10px; font-size: 0.93rem; color: #c8d4ea; }
+
+    /* FLOW TABLE */
+    .flow-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.88rem; }
+    .flow-table th {
+      background: var(--surface2); color: var(--muted); font-weight: 600;
+      text-align: left; padding: 10px 14px; font-size: 0.72rem;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .flow-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: #b8c4d8; }
+    .flow-table tr:hover td { background: var(--surface2); }
+
+    /* PHILOSOPHY BOX */
+    .philosophy {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
+      margin: 24px 0;
+    }
+    .phil-card {
+      background: var(--surface2); border-radius: 12px; padding: 18px 20px;
+      border: 1px solid var(--border);
+    }
+    .phil-card .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .phil-card h4 { color: #fff; font-size: 0.95rem; margin-bottom: 6px; }
+    .phil-card p { color: var(--muted); font-size: 0.85rem; }
+
+    /* FOOTER */
+    footer {
+      margin-top: 60px; padding: 24px 40px;
+      border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.82rem; text-align: center;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 900px) {
+      nav { display: none; }
+      .skill-cards { grid-template-columns: 1fr; }
+      main { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 <span>mattpocock</span>/skills</h1>
+  <p>Skills for Real Engineers — 完整使用指南 &nbsp;|&nbsp;
+    <a href="https://github.com/mattpocock/skills" target="_blank">GitHub ↗</a> &nbsp;|&nbsp;
+    <a href="https://skills.sh/mattpocock/skills" target="_blank">skills.sh ↗</a>
+  </p>
+</header>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav>
+  <h3>快速開始</h3>
+  <a href="#quickstart">安裝與設定</a>
+  <a href="#philosophy">設計哲學</a>
+  <a href="#workflow">使用工作流程</a>
+
+  <h3>Engineering Skills</h3>
+  <a href="#setup-matt-pocock-skills">setup-matt-pocock-skills <span class="badge user-badge">User</span></a>
+  <a href="#ask-matt">ask-matt <span class="badge user-badge">User</span></a>
+  <a href="#grill-with-docs">grill-with-docs <span class="badge user-badge">User</span></a>
+  <a href="#triage">triage <span class="badge user-badge">User</span></a>
+  <a href="#to-spec">to-spec <span class="badge user-badge">User</span></a>
+  <a href="#to-tickets">to-tickets <span class="badge user-badge">User</span></a>
+  <a href="#implement">implement <span class="badge user-badge">User</span></a>
+  <a href="#wayfinder">wayfinder <span class="badge user-badge">User</span></a>
+  <a href="#improve-codebase-architecture">improve-codebase-arch <span class="badge user-badge">User</span></a>
+  <a href="#tdd">tdd <span class="badge model-badge">Model</span></a>
+  <a href="#diagnosing-bugs">diagnosing-bugs <span class="badge model-badge">Model</span></a>
+  <a href="#code-review">code-review <span class="badge model-badge">Model</span></a>
+  <a href="#prototype">prototype <span class="badge model-badge">Model</span></a>
+  <a href="#research">research <span class="badge model-badge">Model</span></a>
+  <a href="#domain-modeling">domain-modeling <span class="badge model-badge">Model</span></a>
+  <a href="#codebase-design">codebase-design <span class="badge model-badge">Model</span></a>
+  <a href="#resolving-merge-conflicts">resolving-merge-conflicts <span class="badge model-badge">Model</span></a>
+
+  <h3>Productivity Skills</h3>
+  <a href="#grill-me">grill-me <span class="badge user-badge">User</span></a>
+  <a href="#handoff">handoff <span class="badge user-badge">User</span></a>
+  <a href="#teach">teach <span class="badge user-badge">User</span></a>
+  <a href="#writing-great-skills">writing-great-skills <span class="badge user-badge">User</span></a>
+  <a href="#grilling">grilling <span class="badge model-badge">Model</span></a>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+<!-- QUICKSTART -->
+<section class="section" id="quickstart">
+  <div class="section-header">
+    <span class="section-icon">🚀</span>
+    <div>
+      <h2>安裝與設定</h2>
+      <p>30秒完成安裝，即可在任何 AI Agent 中使用</p>
+    </div>
+  </div>
+
+  <div class="quickstart">
+    <h2>⚡ 快速安裝 (skills.sh 方式)</h2>
+    <ol>
+      <li>執行安裝指令：<pre>npx skills@latest add mattpocock/skills</pre></li>
+      <li>互動式選擇要安裝的 skills，以及目標 coding agent（Claude Code、Codex 等）</li>
+      <li><strong>務必勾選</strong> <code>/setup-matt-pocock-skills</code></li>
+      <li>在 agent 中執行 <code>/setup-matt-pocock-skills</code>，回答設定問題（issue tracker、triage labels、docs 位置）</li>
+      <li>完成！開始使用所有 skills</li>
+    </ol>
+  </div>
+
+  <div class="quickstart" style="border-color: var(--accent2); background: linear-gradient(135deg, #1d1a35, #17142a);">
+    <h2 style="color: var(--accent2);">🔌 Claude Code Plugin 方式 (免維護)</h2>
+    <ol>
+      <li>在 Claude Code 內執行：
+        <pre>/plugin marketplace add mattpocock/skills
+/plugin install mattpocock-skills@mattpocock</pre>
+      </li>
+      <li>或在 shell 中執行：
+        <pre>claude plugin marketplace add mattpocock/skills
+claude plugin install mattpocock-skills@mattpocock</pre>
+      </li>
+      <li>執行 <code>/setup-matt-pocock-skills</code> 進行每個 repo 的設定</li>
+    </ol>
+  </div>
+
+  <table class="flow-table" style="margin-top: 24px;">
+    <thead>
+      <tr><th>安裝方式</th><th>特色</th><th>適合對象</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>skills.sh</code></td><td>檔案複製到 repo，可自行修改客製化</td><td>想 hack 修改 skill 內容的工程師</td></tr>
+      <tr><td>Claude Code Plugin</td><td>受管理的 bundle，自動跟隨作者更新</td><td>想開箱即用、保持最新版的使用者</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- PHILOSOPHY -->
+<section class="section" id="philosophy">
+  <div class="section-header">
+    <span class="section-icon">📐</span>
+    <div>
+      <h2>設計哲學</h2>
+      <p>解決 AI Coding Agent 最常見的四大失敗模式</p>
+    </div>
+  </div>
+  <div class="philosophy">
+    <div class="phil-card">
+      <div class="icon">🎯</div>
+      <h4>問題 #1：Agent 做了錯的東西</h4>
+      <p>用 <code>/grill-me</code> 或 <code>/grill-with-docs</code> 事前對齊需求，讓 agent 先問你大量問題再動工。</p>
+    </div>
+    <div class="phil-card">
+      <div class="icon">🗣️</div>
+      <h4>問題 #2：Agent 輸出過度冗長</h4>
+      <p>建立共享語言（Shared Language）和 <code>CONTEXT.md</code>，讓 agent 用 1 個詞取代 20 個詞。</p>
+    </div>
+    <div class="phil-card">
+      <div class="icon">🔴</div>
+      <h4>問題 #3：程式碼根本不能跑</h4>
+      <p>用 <code>/tdd</code> 實作 red-green-refactor 迴圈，給 agent 一致的測試反饋。</p>
+    </div>
+    <div class="phil-card">
+      <div class="icon">🏗️</div>
+      <h4>問題 #4：程式碼越來越難改</h4>
+      <p>用 <code>/improve-codebase-architecture</code> 定期掃描架構，防止軟體熵失控。</p>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section class="section" id="workflow">
+  <div class="section-header">
+    <span class="section-icon">🔄</span>
+    <div>
+      <h2>推薦使用工作流程</h2>
+      <p>依照使用順序，從初始化到完成功能的完整流程</p>
+    </div>
+  </div>
+  <table class="flow-table">
+    <thead>
+      <tr><th>#</th><th>步驟</th><th>使用 Skill</th><th>說明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>初始化 Repo</td><td><code>/setup-matt-pocock-skills</code></td><td>每個 repo 只需執行一次</td></tr>
+      <tr><td>2</td><td>理解情境/路由</td><td><code>/ask-matt</code></td><td>不確定該用哪個 skill 時先問這個</td></tr>
+      <tr><td>3</td><td>對齊需求</td><td><code>/grill-with-docs</code></td><td>開始任何功能前的必做步驟</td></tr>
+      <tr><td>4</td><td>規劃大型工作</td><td><code>/wayfinder</code></td><td>超過一個 session 的龐大工作</td></tr>
+      <tr><td>5</td><td>整理 Issues</td><td><code>/triage</code></td><td>把積壓的 issues 標記分類</td></tr>
+      <tr><td>6</td><td>建立 Spec</td><td><code>/to-spec</code></td><td>從對話轉換成規格文件</td></tr>
+      <tr><td>7</td><td>拆分 Tickets</td><td><code>/to-tickets</code></td><td>把 spec 拆成可執行的票券</td></tr>
+      <tr><td>8</td><td>實作功能</td><td><code>/implement</code></td><td>驅動 TDD + Code Review</td></tr>
+      <tr><td>9</td><td>架構健檢</td><td><code>/improve-codebase-architecture</code></td><td>每隔幾天執行一次</td></tr>
+      <tr><td>10</td><td>交接工作</td><td><code>/handoff</code></td><td>壓縮 session 給下一個 agent</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== ENGINEERING SKILLS ===== -->
+<section class="section">
+  <div class="section-header">
+    <span class="section-icon">⚙️</span>
+    <div>
+      <h2>Engineering Skills</h2>
+      <p>每日程式開發必備工具</p>
+    </div>
+  </div>
+
+  <div class="skill-cards">
+
+    <!-- setup-matt-pocock-skills -->
+    <div class="skill-card" id="setup-matt-pocock-skills">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>setup-matt-pocock-skills</h3>
+          <span class="cmd">/setup-matt-pocock-skills</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>每個 repo 執行一次的初始化設定。配置 issue tracker、triage labels 和文件存放位置。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>在 agent 中輸入 <code>/setup-matt-pocock-skills</code></li>
+          <li>Agent 問：使用哪個 issue tracker？回答 GitHub / Linear / 本地檔案</li>
+          <li>Agent 問：triage 用哪些 labels？依你的專案回答</li>
+          <li>Agent 問：文件存哪？指定目錄（如 <code>docs/</code>）</li>
+          <li>設定完成，即可使用所有其他 skills</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">⚠️</span> 每個 repo 只需執行一次，不需重複執行</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ask-matt -->
+    <div class="skill-card" id="ask-matt">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>ask-matt</h3>
+          <span class="cmd">/ask-matt</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>Skill 的路由器（Router）。描述你想做的事，它會推薦最適合的 skill。不知道用哪個 skill 時的入口點。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/ask-matt</code></li>
+          <li>用自然語言描述你的目標，例如：「我想新增一個登入功能」</li>
+          <li>Agent 分析後推薦對應的 skill 組合</li>
+          <li>依推薦執行相應 skill</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">💡</span> 每次開始新工作時的最佳起點，特別是對 skills 還不熟悉時</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- grill-with-docs -->
+    <div class="skill-card" id="grill-with-docs">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>grill-with-docs</h3>
+          <span class="cmd">/grill-with-docs</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>最核心的 skill。在做任何程式變更前執行。它是一個深度訪談 session，同時幫你建立 <code>CONTEXT.md</code>（共享語言）和 ADRs（架構決策記錄）。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/grill-with-docs</code> 並描述你想做的改動</li>
+          <li>Agent 開始逐一詢問深度問題，解析需求細節</li>
+          <li>回答所有問題（勿跳過，每個問題都有意義）</li>
+          <li>Agent 協助更新 <code>CONTEXT.md</code> 補充術語定義</li>
+          <li>遇到重要架構決策時，Agent 幫你建立 ADR 文件</li>
+          <li>訪談結束後，需求已完整對齊，可進入下一步</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🌟</span> 每次功能開發前必用，是降低溝通誤差最有效的 skill</div>
+          <div class="tip"><span class="tip-icon">📄</span> 自動維護 CONTEXT.md，讓 agent 使用更精準的領域術語</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- triage -->
+    <div class="skill-card" id="triage">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>triage</h3>
+          <span class="cmd">/triage</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>將 Issues 透過狀態機（State Machine）移動到正確的狀態。自動為 issues 套用你在 setup 時定義的 triage labels。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/triage</code></li>
+          <li>Agent 列出待處理的 issues</li>
+          <li>對每個 issue，Agent 詢問應套用哪個 triage label</li>
+          <li>確認後 Agent 自動在 issue tracker 套用 label</li>
+          <li>重複直到所有 issues 處理完畢</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">📋</span> 需先完成 /setup-matt-pocock-skills 並定義好 triage labels</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- to-spec -->
+    <div class="skill-card" id="to-spec">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>to-spec</h3>
+          <span class="cmd">/to-spec</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>把當前對話（通常是 grill-with-docs 之後）自動合成為規格文件（Spec），並發布到 issue tracker。不需要再做訪談，直接從現有討論提煉。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>完成 <code>/grill-with-docs</code> 後，輸入 <code>/to-spec</code></li>
+          <li>Agent 分析對話紀錄，自動提煉出規格內容</li>
+          <li>Agent 草擬 spec 並展示給你確認</li>
+          <li>確認後，自動發布到 GitHub Issue / Linear / 本地檔案</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">⚡</span> 通常緊接在 grill-with-docs 之後執行，無縫從需求轉為規格</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- to-tickets -->
+    <div class="skill-card" id="to-tickets">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>to-tickets</h3>
+          <span class="cmd">/to-tickets</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>將計劃、spec 或對話拆分成一組「Tracer Bullet Tickets」，每個 ticket 明確宣告其阻擋依賴（blocking edges）。可寫為本地文字檔或在 issue tracker 建立原生阻擋連結。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>有一份 spec 或計劃後，輸入 <code>/to-tickets</code></li>
+          <li>Agent 分析內容，拆分為最小可執行單元的 tickets</li>
+          <li>Agent 標記每個 ticket 的前置依賴關係</li>
+          <li>確認 ticket 清單，指定儲存方式（issue tracker 或本地檔案）</li>
+          <li>Agent 批次建立所有 tickets 並設定 blocking 關係</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🧩</span> Tracer Bullet 概念：每個 ticket 穿透整個技術堆疊（前端到後端）的一小片功能</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- implement -->
+    <div class="skill-card" id="implement">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>implement</h3>
+          <span class="cmd">/implement</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>實際執行 spec 或 tickets 中描述的工作。在預先約定的接縫（seams）上驅動 <code>/tdd</code>，最後以 <code>/code-review</code> 收尾後再提交 commit。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>準備好 spec 或 tickets 後，輸入 <code>/implement</code></li>
+          <li>指定要實作的 ticket 或 spec（可提供 issue URL 或 spec 內容）</li>
+          <li>Agent 自動識別程式碼接縫並啟動 TDD 循環</li>
+          <li>每個功能點完成後自動觸發 code-review</li>
+          <li>Review 通過後提交 commit</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🤖</span> 這是整合其他多個 skills 的高階 orchestrator skill</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- wayfinder -->
+    <div class="skill-card" id="wayfinder">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>wayfinder</h3>
+          <span class="cmd">/wayfinder</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>規劃超出單一 agent session 能容納的龐大工作。以「調查 tickets」地圖的形式呈現在 issue tracker 上，逐一解決直到路徑清晰。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>面對大型功能或重構時，輸入 <code>/wayfinder</code> 並描述目標</li>
+          <li>Agent 建立一組「調查 tickets」（Investigation Tickets）</li>
+          <li>每個 session 只處理一個調查 ticket</li>
+          <li>完成調查後更新 ticket 狀態，逐步收斂路徑</li>
+          <li>所有調查完成後，整體方向明確，可進入正式實作</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🗺️</span> 適用於架構重寫、大型功能重構等需要多次 session 的工作</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- improve-codebase-architecture -->
+    <div class="skill-card" id="improve-codebase-architecture">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>improve-codebase-architecture</h3>
+          <span class="cmd">/improve-codebase-architecture</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>掃描 codebase 找出可深化的設計機會，以視覺化 HTML 報告呈現，再引導你訪談選定的改善點。建議每隔幾天執行一次。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/improve-codebase-architecture</code></li>
+          <li>Agent 掃描整個 codebase，找出架構問題點</li>
+          <li>生成 HTML 報告，視覺化展示問題清單</li>
+          <li>從報告中選擇一個改善項目</li>
+          <li>Agent 進入 grilling 訪談，深度分析選定問題</li>
+          <li>輸出改善建議或直接進入實作</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🔥</span> 防止「Big Ball of Mud」問題，是維護 code quality 的核心工具</div>
+          <div class="tip"><span class="tip-icon">📅</span> 每幾天執行一次，保持架構健康</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tdd -->
+    <div class="skill-card" id="tdd">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>tdd</h3>
+          <span class="cmd">/tdd</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>測試驅動開發（TDD）流程。以 red-green-refactor 迴圈一次一個垂直切面（vertical slice）地實作功能或修復 Bug。通常由 <code>/implement</code> 自動觸發。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>可直接輸入 <code>/tdd</code> 並描述要實作的功能</li>
+          <li><span style="color:var(--red)">🔴 RED</span>：Agent 先寫一個會失敗的測試</li>
+          <li><span style="color:var(--green)">🟢 GREEN</span>：Agent 寫最少程式碼讓測試通過</li>
+          <li><span style="color:var(--accent)">🔵 REFACTOR</span>：Agent 重構程式碼，測試持續通過</li>
+          <li>重複循環直到功能完成</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">✅</span> 提供一致的反饋機制，大幅提升 agent 生成程式碼的品質</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- diagnosing-bugs -->
+    <div class="skill-card" id="diagnosing-bugs">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>diagnosing-bugs</h3>
+          <span class="cmd">/diagnosing-bugs</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>針對難以追查的 Bug 和效能回歸問題的系統化診斷迴圈。流程：重現 → 最小化 → 假設 → 插入測量點 → 修復 → 回歸測試。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>遇到難解的 bug，輸入 <code>/diagnosing-bugs</code> 並描述問題</li>
+          <li><strong>Reproduce</strong>：建立可穩定重現的測試案例</li>
+          <li><strong>Minimise</strong>：縮減重現步驟到最小集合</li>
+          <li><strong>Hypothesise</strong>：列出可能原因並排序</li>
+          <li><strong>Instrument</strong>：加入 logging/metrics 驗證假設</li>
+          <li><strong>Fix</strong>：實施修復</li>
+          <li><strong>Regression Test</strong>：加入回歸測試防止再發</li>
+        </ol></div>
+      </div>
+    </div>
+
+    <!-- code-review -->
+    <div class="skill-card" id="code-review">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>code-review</h3>
+          <span class="cmd">/code-review</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>雙軸 Code Review：<strong>Standards 軸</strong>（是否符合 repo 標準 + Fowler code smell）和 <strong>Spec 軸</strong>（是否忠實實作原始 issue/PRD）。以平行 sub-agents 執行，確保互不干擾。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>完成一段程式後，可直接輸入 <code>/code-review</code></li>
+          <li>或提供參考點：<code>/code-review since:abc1234</code>（指定 commit SHA）</li>
+          <li>兩個平行 agent 分別從 Standards 和 Spec 角度 review</li>
+          <li>查看雙軸 review 報告</li>
+          <li>依建議修改後重新 review</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">⚖️</span> 平行執行確保兩個視角互不污染，得到更客觀的 review 結果</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- prototype -->
+    <div class="skill-card" id="prototype">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>prototype</h3>
+          <span class="cmd">/prototype</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>建立用完即丟的 Prototype 來回答設計問題。邏輯/狀態問題 → 可執行的終端機 app；UI 問題 → 多種截然不同的 UI 變體可在同一路由切換比較。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/prototype</code> 並說明想驗證的設計問題</li>
+          <li>指定 prototype 類型：邏輯驗證或 UI 比較</li>
+          <li>Agent 快速建立 throwaway prototype（不求完美）</li>
+          <li>實際測試 prototype，收集設計決策依據</li>
+          <li>得到答案後，丟棄 prototype，用所學設計正式實作</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🗑️</span> Prototype 的目的是「學習」而非「交付」，勿將 prototype 程式碼直接用於生產</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- research -->
+    <div class="skill-card" id="research">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>research</h3>
+          <span class="cmd">/research</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>對問題進行系統化調查，依靠高信任度的主要來源（primary sources），並將發現以有引用的 Markdown 檔案存入 repo。以背景 agent（background agent）執行。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/research</code> 並描述調查問題</li>
+          <li>指定可信來源優先順序（官方文件、RFC、論文等）</li>
+          <li>Agent 在背景執行調查，不阻塞主工作流程</li>
+          <li>調查完成後，在 repo 內生成有引用的 Markdown 報告</li>
+          <li>引用報告內容作為後續決策依據</li>
+        </ol></div>
+      </div>
+    </div>
+
+    <!-- domain-modeling -->
+    <div class="skill-card" id="domain-modeling">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>domain-modeling</h3>
+          <span class="cmd">/domain-modeling</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>主動建立和精化專案的領域模型。挑戰術語是否符合 glossary、以 edge-case 場景壓力測試，並即時更新 <code>CONTEXT.md</code> 和 ADRs。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>通常由 <code>/grill-with-docs</code> 自動觸發，也可直接輸入</li>
+          <li>提供要建模的業務領域或概念</li>
+          <li>Agent 挑戰現有術語，確保一致性</li>
+          <li>Agent 用 edge cases 測試模型的完備性</li>
+          <li>自動更新 <code>CONTEXT.md</code> 的 glossary 章節</li>
+        </ol></div>
+      </div>
+    </div>
+
+    <!-- codebase-design -->
+    <div class="skill-card" id="codebase-design">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>codebase-design</h3>
+          <span class="cmd">/codebase-design</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>設計「深度模組」（Deep Modules）的共享紀律與詞彙：透過小型介面（interface）暴露大量行為，放置在乾淨的接縫（seam），並可透過該介面進行測試。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>設計新模組或重構時觸發 <code>/codebase-design</code></li>
+          <li>Agent 詢問模組應暴露的最小介面</li>
+          <li>Agent 協助識別模組的天然接縫（seams）</li>
+          <li>制定測試策略，確保可透過介面測試</li>
+          <li>輸出設計決策，納入 ADR</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">📚</span> 基於 John Ousterhout《A Philosophy of Software Design》的深度模組原則</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- resolving-merge-conflicts -->
+    <div class="skill-card" id="resolving-merge-conflicts">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>resolving-merge-conflicts</h3>
+          <span class="cmd">/resolving-merge-conflicts</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>逐 hunk 處理進行中的 git merge 或 rebase 衝突，透過追溯每一方的原始意圖（primary source）來解決，最後完成 merge/rebase 操作——絕不 <code>--abort</code>。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>遇到 merge conflict 後，輸入 <code>/resolving-merge-conflicts</code></li>
+          <li>Agent 逐一檢視每個衝突 hunk</li>
+          <li>Agent 追溯兩側各自的原始意圖（相關 commit、issue）</li>
+          <li>依意圖優先順序解決衝突，非機械式合併</li>
+          <li>所有 hunk 解決後，完成 merge 或 rebase 操作</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🚫</span> 原則：永遠不使用 <code>--abort</code>，面對問題解決問題</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end skill-cards engineering -->
+</section>
+
+<!-- ===== PRODUCTIVITY SKILLS ===== -->
+<section class="section">
+  <div class="section-header">
+    <span class="section-icon">🎯</span>
+    <div>
+      <h2>Productivity Skills</h2>
+      <p>通用工作流程工具，不限程式開發場景</p>
+    </div>
+  </div>
+
+  <div class="skill-cards">
+
+    <!-- grill-me -->
+    <div class="skill-card" id="grill-me">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>grill-me</h3>
+          <span class="cmd">/grill-me</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>非程式場景的深度訪談版本。對任何計劃或設計進行無情的連環提問，直到決策樹的每個分支都解決為止。<code>/grill-with-docs</code> 的輕量版，不帶文件生成。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/grill-me</code> 並描述你的計劃、想法或問題</li>
+          <li>Agent 展開連環提問，不放過任何模糊地帶</li>
+          <li>誠實回答每個問題（模糊答案會被追問）</li>
+          <li>訪談結束後，你對自己的計劃有清晰的全貌</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">💡</span> 非常適合在寫文章、做決策、規劃旅程等非工程場景使用</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- handoff -->
+    <div class="skill-card" id="handoff">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>handoff</h3>
+          <span class="cmd">/handoff</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>將當前 conversation 壓縮成交接文件（Handoff Document），讓另一個 agent（或新 session）可以無縫接續工作。解決 context window 用盡的問題。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>當 session 快達到 context limit 時，輸入 <code>/handoff</code></li>
+          <li>Agent 分析整個對話，提煉關鍵狀態和未完成工作</li>
+          <li>Agent 生成結構化的交接文件（包含：當前狀態、決策紀錄、待辦事項、相關檔案）</li>
+          <li>開啟新 session，貼入交接文件作為開場</li>
+          <li>新 session 的 agent 可立即了解上下文並繼續工作</li>
+        </ol></div>
+      </div>
+    </div>
+
+    <!-- teach -->
+    <div class="skill-card" id="teach">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>teach</h3>
+          <span class="cmd">/teach</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>透過多個 session 教授你新技能或概念，以當前目錄作為有狀態的教學工作空間。Session 間保持學習進度。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>輸入 <code>/teach [主題]</code>，例如：<code>/teach TypeScript generics</code></li>
+          <li>Agent 評估你的現有知識水準</li>
+          <li>Agent 制定個人化教學計劃</li>
+          <li>每個 session 完成一個學習單元，並在目錄留下學習記錄</li>
+          <li>下次輸入 <code>/teach</code>，從上次中斷處繼續</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">📚</span> 利用本地目錄作為持久化的學習狀態，跨 session 不遺失進度</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- writing-great-skills -->
+    <div class="skill-card" id="writing-great-skills">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>writing-great-skills</h3>
+          <span class="cmd">/writing-great-skills</span>
+        </div>
+        <span class="invoke-tag user-tag">👤 User-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>撰寫和編輯 Skills 的參考指南。包含讓 skill 可預測的詞彙和原則。想要自己擴充或修改 skills 時的必讀資料。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>想寫新 skill 時，先輸入 <code>/writing-great-skills</code> 閱讀指南</li>
+          <li>了解 User-invoked vs Model-invoked 的設計原則</li>
+          <li>學習 skill 的結構格式（SKILL.md 的撰寫慣例）</li>
+          <li>按照指南的詞彙和模式撰寫你的自訂 skill</li>
+          <li>請 agent 使用 <code>/writing-great-skills</code> 的標準 review 你寫的 skill</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">✍️</span> 使用 skills.sh 安裝的使用者可直接修改 SKILL.md 檔案客製化行為</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- grilling -->
+    <div class="skill-card" id="grilling">
+      <div class="skill-card-header">
+        <div class="skill-name">
+          <h3>grilling</h3>
+          <span class="cmd">/grilling</span>
+        </div>
+        <span class="invoke-tag model-tag">🤖 Model-invoked</span>
+      </div>
+      <div class="skill-card-body">
+        <p>無情訪談使用者，直到計劃、決策或想法的每個決策樹分支都解決為止。這是 <code>/grill-me</code> 和 <code>/grill-with-docs</code> 背後共用的可重用循環邏輯。</p>
+        <div class="step-label">使用步驟</div>
+        <div class="steps"><ol>
+          <li>通常由 <code>/grill-me</code> 或 <code>/grill-with-docs</code> 自動觸發</li>
+          <li>也可作為 sub-skill 被其他自訂 skill 呼叫</li>
+          <li>接受要訪談的主題或文件作為輸入</li>
+          <li>執行結構化訪談直到問題完全解決</li>
+        </ol></div>
+        <div class="tips">
+          <div class="tip"><span class="tip-icon">🔧</span> 撰寫自訂 skill 時可引用此 skill 獲得訪談能力</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end skill-cards productivity -->
+</section>
+
+</main>
+</div>
+
+<footer>
+  <p>
+    基於 <a href="https://github.com/mattpocock/skills" target="_blank">mattpocock/skills</a> 整理 &nbsp;|&nbsp;
+    <a href="https://skills.sh/mattpocock/skills" target="_blank">skills.sh</a> &nbsp;|&nbsp;
+    <a href="https://www.aihero.dev/s/skills-newsletter" target="_blank">Newsletter</a> &nbsp;|&nbsp;
+    生成日期：2026-07-23
+  </p>
+</footer>
+
+</body>
+</html>
