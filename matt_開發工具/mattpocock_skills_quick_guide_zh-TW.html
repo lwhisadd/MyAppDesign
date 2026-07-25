@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matt Pocock Skills 快速實戰指南</title>
+<meta name="description" content="mattpocock/skills 的新專案、重大重構、Bug 修正、大型專案流程，以及 Codex、OpenCode、Antigravity 安裝指南。">
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --panel2:#f8fafc; --text:#172033; --muted:#5d697b;
+  --line:#d9e0e8; --brand:#2457d6; --brand2:#163b96; --accent:#0b806f; --warn:#a85b00;
+  --danger:#a12d3b; --code:#111827; --codeText:#e5edf8; --shadow:0 12px 34px rgba(24,38,63,.09);
+  --radius:16px;
+}
+html[data-theme="dark"]{
+  --bg:#0f1420; --panel:#171e2c; --panel2:#1d2636; --text:#eef3fb; --muted:#aeb9c9;
+  --line:#334057; --brand:#78a1ff; --brand2:#9bb8ff; --accent:#65d3c0; --warn:#f4b45f;
+  --danger:#ff8d9c; --code:#090d14; --codeText:#e8eef9; --shadow:0 15px 42px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.75}
+a{color:var(--brand);text-decoration:none} a:hover{text-decoration:underline}
+button{font:inherit}
+.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1280px;margin:auto;padding:10px 22px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+.brand{font-weight:800;letter-spacing:.2px}.toolbar{display:flex;gap:8px}.iconbtn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:7px 11px;cursor:pointer}
+.hero{background:linear-gradient(125deg,#173b91 0%,#2457d6 48%,#0b806f 100%);color:#fff;padding:72px 24px 62px}
+.hero-inner{max-width:1120px;margin:auto}.eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:.88rem;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.24)}
+h1{font-size:clamp(2.25rem,5vw,4.4rem);line-height:1.08;margin:20px 0 18px;letter-spacing:-.035em}.lead{font-size:1.16rem;max-width:880px;color:#edf4ff;margin:0}.hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}.hero-meta span{padding:8px 12px;background:rgba(6,21,50,.25);border:1px solid rgba(255,255,255,.2);border-radius:10px;font-size:.92rem}
+.layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;padding:30px 22px 80px}
+.sidebar{position:sticky;top:70px;align-self:start;max-height:calc(100vh - 90px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.sidebar h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:3px 8px 10px}.toc a{display:block;padding:8px 10px;border-radius:9px;color:var(--text);font-size:.94rem}.toc a:hover,.toc a.active{background:var(--panel2);color:var(--brand);text-decoration:none}.toc .sub{padding-left:24px;font-size:.88rem;color:var(--muted)}
+main{min-width:0}.section{scroll-margin-top:88px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:30px;margin-bottom:24px;box-shadow:var(--shadow)}
+.section h2{font-size:1.75rem;line-height:1.3;margin:0 0 14px}.section h3{font-size:1.25rem;margin:30px 0 10px}.section h4{font-size:1.04rem;margin:22px 0 7px}.muted{color:var(--muted)}
+.callout{border-left:5px solid var(--brand);background:var(--panel2);padding:16px 18px;border-radius:0 12px 12px 0;margin:18px 0}.callout.good{border-color:var(--accent)}.callout.warn{border-color:var(--warn)}.callout.danger{border-color:var(--danger)}.callout strong{display:block;margin-bottom:3px}
+.grid{display:grid;gap:16px}.grid.cols2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--panel2)}.card h3,.card h4{margin-top:0}.badge{display:inline-block;font-size:.78rem;font-weight:750;border-radius:999px;padding:3px 9px;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand);margin-right:5px}.badge.green{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}.badge.orange{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.flow{display:flex;align-items:stretch;gap:10px;overflow-x:auto;padding:6px 2px 14px}.flow-step{min-width:160px;flex:1;border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:15px;position:relative}.flow-step:not(:last-child)::after{content:"→";position:absolute;right:-18px;top:42%;font-weight:900;color:var(--brand);z-index:2}.flow-step .n{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;font-weight:800;background:var(--brand);color:white;margin-bottom:8px}.flow-step b{display:block}.flow-step small{color:var(--muted)}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;margin:20px 0;padding-bottom:20px;border-bottom:1px dashed var(--line)}.step:last-child{border-bottom:0;padding-bottom:0}.stepno{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--brand);color:white;font-weight:800}.step h3{margin:2px 0 7px}.step ul{margin-top:7px}
+code{font-family:"Cascadia Code","SFMono-Regular",Consolas,monospace;font-size:.93em}p code,li code,td code{background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 5px;border-radius:5px;color:var(--brand2)}
+.codebox{position:relative;margin:13px 0 18px}.codebox pre{margin:0;overflow:auto;background:var(--code);color:var(--codeText);border-radius:13px;padding:18px 48px 18px 18px;line-height:1.6;border:1px solid #2b3547}.copy{position:absolute;top:8px;right:8px;border:1px solid #465269;background:#202a39;color:#eaf0fa;border-radius:8px;padding:5px 9px;cursor:pointer;font-size:.8rem}.copy.ok{background:#0a6b5e}
+.prompt{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:15px 16px;margin:10px 0}.prompt::before{content:"建議提示詞";display:block;font-size:.78rem;letter-spacing:.08em;font-weight:800;color:var(--accent);margin-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:16px 0;display:block;overflow-x:auto}th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;min-width:130px}th{background:var(--panel2)}
+details{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--panel2)}summary{cursor:pointer;padding:13px 15px;font-weight:750}details>div{padding:0 15px 15px}
+.checklist{list-style:none;padding-left:0}.checklist li{position:relative;padding-left:28px;margin:8px 0}.checklist li::before{content:"□";position:absolute;left:2px;color:var(--brand);font-weight:900}
+.kbd{border:1px solid var(--line);border-bottom-width:3px;background:var(--panel2);padding:1px 6px;border-radius:5px;font-family:monospace;font-size:.86em}
+.footer{max-width:1120px;margin:0 auto 50px;padding:0 22px;color:var(--muted);text-align:center}.source-list li{margin:8px 0;word-break:break-word}
+@media(max-width:960px){.layout{grid-template-columns:1fr}.sidebar{position:relative;top:auto;max-height:none}.grid.cols2,.grid.cols3{grid-template-columns:1fr}.hero{padding-top:55px}.flow-step{min-width:220px}}
+@media print{.topbar,.sidebar,.copy{display:none!important}.hero{padding:30px;background:#173b91!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.layout{display:block;padding:20px}.section{box-shadow:none;break-inside:avoid;border-color:#ccc}.codebox pre{white-space:pre-wrap}.footer{margin-bottom:0}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner"><div class="brand">Matt Pocock Skills 快速指南</div><div class="toolbar"><button class="iconbtn" id="themeBtn" aria-label="切換深色模式">深色模式</button><button class="iconbtn" onclick="window.print()">列印／另存 PDF</button></div></div></div>
+<header class="hero"><div class="hero-inner">
+  <div class="eyebrow">實戰導向 · Codex / OpenCode / Antigravity</div>
+  <h1>Skills For Real Engineers<br>快速實戰指南</h1>
+  <p class="lead">以 <strong>mattpocock/skills</strong> 為核心，建立可重複的需求釐清、領域建模、規格化、任務切片、TDD、除錯與程式碼審查流程。本指南針對 Windows 11 與專案級 <code>AGENTS.md</code> 使用方式整理。</p>
+  <div class="hero-meta"><span>資料確認日期：2026-07-25</span><span>建議：優先採專案級安裝</span><span>單一 HTML，可離線閱讀</span></div>
+</div></header>
+<div class="layout">
+<aside class="sidebar"><h2>目錄</h2><nav class="toc" id="toc">
+<a href="#start">先讀這裡</a>
+<a href="#map">技能地圖</a>
+<a href="#new-project">開發新專案流程</a>
+<a href="#refactor">重大修改或重構流程</a>
+<a href="#bugfix">Bug 修正流程</a>
+<a href="#large">大型專案流程</a>
+<a href="#codex">Codex 安裝</a>
+<a href="#opencode">OpenCode 安裝</a>
+<a href="#antigravity">Antigravity 安裝</a>
+<a href="#examples">實際操作範例</a>
+<a href="#advice">其他重要建議</a>
+<a href="#troubleshoot">故障排除</a>
+<a href="#sources">資料來源</a>
+</nav></aside>
+<main>
+<section class="section" id="start">
+<h2>先讀這裡：這套 Skills 怎麼用</h2>
+<p><code>mattpocock/skills</code> 不是一個自動接管整個專案的框架，而是一套可組合的工程工作法。你可以只在需要時使用其中一項技能，也可以把多項技能串成完整流程。</p>
+<div class="grid cols3">
+<div class="card"><span class="badge">規劃</span><h3>先對齊再動工</h3><p><code>grill-with-docs</code>、<code>domain-modeling</code>、<code>to-spec</code> 把口語需求轉成領域語言、ADR 與可驗證規格。</p></div>
+<div class="card"><span class="badge green">實作</span><h3>小步、垂直切片</h3><p><code>to-tickets</code>、<code>implement</code>、<code>tdd</code> 將工作切成可在單一上下文完成的 tracer bullet。</p></div>
+<div class="card"><span class="badge orange">驗證</span><h3>需求與品質分開審</h3><p><code>diagnosing-bugs</code>、<code>code-review</code>、<code>improve-codebase-architecture</code> 建立回饋迴路並檢查規格符合度與程式異味。</p></div>
+</div>
+<div class="callout warn"><strong>不同 Agent 的呼叫語法不相同</strong>
+專案 README 經常以 <code>/skill-name</code> 表示技能，但實際使用時：Codex 建議輸入 <code>$skill-name</code>；OpenCode 通常在提示詞中指名技能，由原生 <code>skill</code> tool 載入；Antigravity CLI 會把 Skills 轉成 slash commands，可直接輸入 <code>/skill-name</code>。Antigravity IDE 則可在提示詞中指名技能。</div>
+<div class="callout good"><strong>最適合你的預設策略</strong>
+將 Skills 安裝在每個專案的 <code>.agents/skills/</code>，並提交到 Git。這能同時被 Codex、OpenCode 與 Antigravity 辨識，也不會影響其他專案或全域設定。</div>
+</section>
+
+<section class="section" id="map">
+<h2>核心技能地圖</h2>
+<table><thead><tr><th>技能</th><th>主要用途</th><th>何時使用</th><th>主要產出</th></tr></thead><tbody>
+<tr><td><code>setup-matt-pocock-skills</code></td><td>建立專案級 Issue Tracker、標籤與領域文件配置</td><td>每個 repo 首次使用</td><td><code>docs/agents/*.md</code>、更新 <code>AGENTS.md</code> 或 <code>CLAUDE.md</code></td></tr>
+<tr><td><code>grill-with-docs</code></td><td>深入訪談需求，同步建立術語與 ADR</td><td>新功能、重大設計、需求模糊時</td><td><code>CONTEXT.md</code>、ADR、已釐清的決策</td></tr>
+<tr><td><code>domain-modeling</code></td><td>統一領域語言，找出概念矛盾</td><td>ERP、流程、狀態、權限與資料模型</td><td>純領域詞彙表，不放實作細節</td></tr>
+<tr><td><code>to-spec</code></td><td>把現有對話合成正式規格</td><td>需求已討論完成、準備立案</td><td>Problem、Solution、User Stories、Testing、Out of Scope</td></tr>
+<tr><td><code>to-tickets</code></td><td>把規格拆成垂直切片與阻擋關係</td><td>準備分階段實作</td><td>GitHub Issues 或本機 Markdown tickets</td></tr>
+<tr><td><code>implement</code></td><td>依 spec/tickets 實作，過程套用 TDD，最後 code review</td><td>需求與任務已核准</td><td>程式碼、測試、審查結果、原版規則會 commit</td></tr>
+<tr><td><code>tdd</code></td><td>以公開 seam 執行 red → green 的垂直切片</td><td>新功能或 Bug 修復需要測試保護</td><td>先紅後綠的行為測試</td></tr>
+<tr><td><code>diagnosing-bugs</code></td><td>建立回饋迴路、縮小重現、假設驗證、修正與回歸</td><td>難解 Bug、偶發錯誤、效能退化</td><td>可重現命令、最小案例、回歸測試、根因</td></tr>
+<tr><td><code>code-review</code></td><td>分開審查 Standards 與 Spec</td><td>功能完成、PR 前、重大修改後</td><td>兩軸審查報告</td></tr>
+<tr><td><code>improve-codebase-architecture</code></td><td>掃描架構摩擦並產生視覺 HTML 報告</td><td>重構前、程式難測或難理解時</td><td>候選重構與 before/after 圖</td></tr>
+<tr><td><code>wayfinder</code></td><td>把超過單次上下文的大型工作變成決策地圖</td><td>重大遷移、跨模組計畫、方向仍有迷霧</td><td>Map issue、決策 tickets、frontier、fog of war</td></tr>
+<tr><td><code>prototype</code></td><td>用可拋棄原型回答設計問題</td><td>介面或行為尚無法只靠文字決定</td><td>低成本可執行原型</td></tr>
+</tbody></table>
+</section>
+
+<section class="section" id="new-project">
+<h2>開發新專案流程及每一步驟的使用方式</h2>
+<div class="flow">
+<div class="flow-step"><div class="n">1</div><b>專案初始化</b><small>Git、測試、型別與 CI 基線</small></div>
+<div class="flow-step"><div class="n">2</div><b>Setup</b><small>Issue Tracker 與文件布局</small></div>
+<div class="flow-step"><div class="n">3</div><b>Grill + Domain</b><small>釐清需求與共同語言</small></div>
+<div class="flow-step"><div class="n">4</div><b>Spec</b><small>正式規格與測試 seam</small></div>
+<div class="flow-step"><div class="n">5</div><b>Tickets</b><small>垂直切片與依賴</small></div>
+<div class="flow-step"><div class="n">6</div><b>Implement + TDD</b><small>逐張實作</small></div>
+<div class="flow-step"><div class="n">7</div><b>Code Review</b><small>標準與規格雙軸審查</small></div>
+</div>
+
+<div class="step"><div class="stepno">1</div><div><h3>建立最小可驗證專案基線</h3>
+<p>先讓 Agent 能快速取得「成功／失敗」訊號。至少建立建置、型別檢查、單元測試與格式化命令。新專案不要先塞入大量抽象層。</p>
+<ul><li>初始化 Git，建立第一個乾淨 commit。</li><li>確認一條最小測試命令可執行。</li><li>在 <code>AGENTS.md</code> 記錄建置、測試與禁止事項。</li><li>敏感資料放入環境變數，不放入 prompt、skill 或 repo。</li></ul>
+<div class="prompt">先分析此空白專案的目標與技術限制。只建立最小可執行骨架、測試命令與 AGENTS.md 基線，不要實作業務功能，也不要自行 commit。</div>
+</div></div>
+
+<div class="step"><div class="stepno">2</div><div><h3>執行 <code>setup-matt-pocock-skills</code></h3>
+<p>此步驟只需每個 repo 執行一次。它會檢查 Git remote、現有 <code>AGENTS.md</code>/<code>CLAUDE.md</code>、<code>CONTEXT.md</code>、ADR 與 monorepo 訊號，再設定 Issue Tracker 和領域文件位置。</p>
+<div class="grid cols2"><div class="card"><h4>建議選項</h4><ul><li>Issue Tracker：有 GitHub remote 就選 GitHub。</li><li>單人或實驗專案：可選 local markdown。</li><li>Domain docs：一般 repo 選 single-context。</li><li>沿用既有 <code>AGENTS.md</code>，避免重複建立 <code>CLAUDE.md</code>。</li></ul></div><div class="card"><h4>針對你的目錄習慣</h4><p>在 setup 期間明確要求規劃與修補文件繼續放在既有 <code>plan/</code>、<code>plan/troubleshooting/</code>、<code>plan/break_plan/</code>，不要重複建立相同用途的資料夾。</p></div></div>
+<div class="prompt">使用 setup-matt-pocock-skills 設定此 repository。沿用現有 AGENTS.md；Issue Tracker 使用 GitHub；領域術語使用根目錄 CONTEXT.md；ADR 使用 docs/adr；既有開發計畫仍存放於 plan/，不要建立重複用途的 specs 目錄。先顯示草稿，未經我核准不得寫檔。</div>
+</div></div>
+
+<div class="step"><div class="stepno">3</div><div><h3>使用 <code>grill-with-docs</code> 釐清產品與領域</h3>
+<p>讓 Agent 一次詢問一個真正會改變設計的問題。回答時提供具體案例、角色、狀態轉換、例外與資料來源。過程中以 <code>domain-modeling</code> 更新共同語言。</p>
+<ul><li><code>CONTEXT.md</code> 只放「名詞及其精確含義」，不要放檔案路徑與類別名稱。</li><li>只有難以逆轉、未來讀者會疑惑、且有真實取捨的決策才建立 ADR。</li><li>遇到 UI 或行為難以文字決定時，先用 <code>prototype</code> 做可拋棄原型。</li></ul>
+<div class="prompt">使用 grill-with-docs 釐清此專案。請從使用者角色、核心業務流程、狀態轉換、錯誤處理、權限和資料生命週期開始；一次只問一個問題。同步維護 CONTEXT.md，ADR 必須符合難以逆轉、令人意外、存在真實取捨三個條件。</div>
+</div></div>
+
+<div class="step"><div class="stepno">4</div><div><h3>使用 <code>to-spec</code> 將討論固化成規格</h3>
+<p><code>to-spec</code> 不再訪談，而是把現有對話與 codebase 理解整理成規格。它會要求先確認測試 seam，並建立 Problem、Solution、User Stories、Implementation Decisions、Testing Decisions、Out of Scope。</p>
+<div class="callout warn"><strong>不要太早使用</strong>若重要需求仍不清楚，先回到 <code>grill-with-docs</code>；否則規格只會把模糊內容正式化。</div>
+<div class="prompt">使用 to-spec 把目前已確認的需求整理成規格。先提出建議測試 seam，等我核准後再發布。規格禁止寫入容易過期的檔案路徑與程式片段；明確列出 Out of Scope。</div>
+</div></div>
+
+<div class="step"><div class="stepno">5</div><div><h3>使用 <code>to-tickets</code> 拆成 tracer-bullet tickets</h3>
+<p>每張 ticket 應完成一條窄但完整的路徑，例如資料、API、UI 與測試，而不是「先把所有資料庫改完」。每張 ticket 必須能獨立展示或驗證，並適合一個新的上下文視窗完成。</p>
+<ul><li>先完成必要 prefactor，再做功能切片。</li><li>每張 ticket 標明 <code>Blocked by</code>。</li><li>廣泛 rename 或 schema 變更使用 expand → migrate batches → contract。</li><li>發布前先讓你確認顆粒度、依賴是否正確。</li></ul>
+<div class="prompt">使用 to-tickets 將此規格拆成垂直切片。每張 ticket 必須在一個全新上下文中可完成、可獨立驗證，並標出 blocking edges。先顯示草稿，不要建立 GitHub Issues，等我核准後再發布。</div>
+</div></div>
+
+<div class="step"><div class="stepno">6</div><div><h3>逐張使用 <code>implement</code>，並在約定 seam 套用 <code>tdd</code></h3>
+<p>一次只處理一張 frontier ticket。先讀 spec、<code>CONTEXT.md</code> 與相關 ADR；確認測試 seam；執行一個測試、一個最小實作的垂直循環。定期跑 typecheck 與單一測試，最後才跑完整套件。</p>
+<div class="callout danger"><strong>原始 implement skill 會自動 commit</strong>這和你常用的「先審查、再決定是否提交」不一致。建議修改專案內的本機 skill，要求完成後只輸出變更與驗證摘要，除非使用者明確要求，否則不得 commit、push 或建立 PR。</div>
+<div class="prompt">使用 implement 實作 ticket「建立訂單最小成功路徑」。使用 tdd，先提出並確認測試 seam；只處理本 ticket，不擴大範圍。完成後執行 code-review，但不要 commit、push 或建立 PR。</div>
+</div></div>
+
+<div class="step"><div class="stepno">7</div><div><h3>使用 <code>code-review</code> 雙軸審查</h3>
+<p>指定固定比較點，例如 <code>main</code>、某 commit 或 merge-base。Standards 軸檢查專案規範與 Fowler smells；Spec 軸檢查漏做、做錯與 scope creep。兩軸報告保持分開，不要互相抵銷。</p>
+<div class="prompt">使用 code-review 審查從 main 到目前 HEAD 的變更。Spec 來源是 GitHub Issue #123；Standards 來源包含 AGENTS.md、CONTRIBUTING.md 與既有慣例。只回報可操作問題，不要修改程式。</div>
+<p><strong>完成條件：</strong>spec 驗收條件全部有證據、測試通過、沒有未要求功能、沒有未處理高風險審查項目，才進入人工核准與 commit。</p>
+</div></div>
+</section>
+
+<section class="section" id="refactor">
+<h2>重大修改或重構流程及每一步驟的使用方式</h2>
+<div class="flow">
+<div class="flow-step"><div class="n">1</div><b>建立基線</b><small>現況、測試、效能、相容性</small></div>
+<div class="flow-step"><div class="n">2</div><b>Architecture Scan</b><small>找出高價值候選</small></div>
+<div class="flow-step"><div class="n">3</div><b>Wayfinder</b><small>處理未知與決策</small></div>
+<div class="flow-step"><div class="n">4</div><b>Spec + Tickets</b><small>展開／遷移／收縮</small></div>
+<div class="flow-step"><div class="n">5</div><b>Incremental Change</b><small>每批保持可回復</small></div>
+<div class="flow-step"><div class="n">6</div><b>Review + Compare</b><small>行為、效能、相容性</small></div>
+</div>
+
+<div class="step"><div class="stepno">1</div><div><h3>凍結現況與成功標準</h3>
+<p>重大修改前先建立可比較基線：現有測試結果、代表性輸入輸出、SQL 快照、效能指標、資料庫版本、API 相容範圍與回滾方式。</p>
+<ul class="checklist"><li>保存代表性 fixtures 與 golden outputs。</li><li>記錄目前失敗測試，不把既有問題誤認為重構造成。</li><li>列出不可破壞的 public contracts。</li><li>建立回滾點與資料 migration 回復方案。</li></ul>
+</div></div>
+<div class="step"><div class="stepno">2</div><div><h3>使用 <code>improve-codebase-architecture</code> 掃描摩擦</h3>
+<p>先限定範圍，優先檢查近期常被修改的 hot spots。該 skill 會用 module、interface、depth、seam、adapter、leverage、locality 等共同詞彙，產生含 before/after 視覺的 HTML 報告。</p>
+<div class="prompt">使用 improve-codebase-architecture 分析 SQL 產生器與 dialect 模組。先讀 CONTEXT.md、相關 ADR 與最近 100 次 commit；找出造成測試困難、跨檔案跳轉與 dialect 洩漏的深層原因。只產生候選報告，不要修改程式。</div>
+</div></div>
+<div class="step"><div class="stepno">3</div><div><h3>選定候選後以 grilling 決定新 seam</h3>
+<p>不要一次接受所有建議。先選一個最有 leverage 的候選，釐清哪些行為應藏在深模組後方、哪些介面必須保持穩定，以及哪些測試能跨重構存活。</p>
+<p>若仍有大量未知、跨多個 session 才能決定，啟動 <code>wayfinder</code>，將研究、原型、訪談與任務分成決策 tickets。</p>
+</div></div>
+<div class="step"><div class="stepno">4</div><div><h3>建立重構規格與 expand–contract tickets</h3>
+<p>重大重構要明確分離「行為不變」與「新增能力」。對廣泛 API、欄位、型別或 SQL AST 變更，使用：</p>
+<table><thead><tr><th>階段</th><th>做法</th><th>通過條件</th></tr></thead><tbody>
+<tr><td>Expand</td><td>加入新介面／欄位／AST 節點，舊形式仍可運作</td><td>舊測試全部通過，新路徑有測試</td></tr>
+<tr><td>Migrate</td><td>依套件或功能批次遷移呼叫者</td><td>每一批可獨立合併且保持綠燈</td></tr>
+<tr><td>Contract</td><td>確認無舊呼叫者後移除舊形式</td><td>搜尋、測試與文件均無殘留</td></tr>
+</tbody></table>
+<div class="prompt">使用 to-spec 產生「SQL AST 與 dialect 分離」重構規格，保證外部查詢結果與參數綁定契約不變。再用 to-tickets 建立 expand、分批 migrate、contract tickets，標明依賴與回滾方式。</div>
+</div></div>
+<div class="step"><div class="stepno">5</div><div><h3>逐批實作，避免 Big Bang</h3>
+<ul><li>一次只做一個結構變更或一個 caller batch。</li><li>先建立 characterization tests，鎖住既有行為。</li><li>對 SQL 使用同一組輸入同時跑舊版與新版，做 differential comparison。</li><li>資料 migration 使用雙寫、影子讀取或可回退策略。</li><li>禁止順便做無關格式化，避免 diff 難審。</li></ul>
+</div></div>
+<div class="step"><div class="stepno">6</div><div><h3>以固定點執行 code review 與前後比較</h3>
+<p>除了單元測試，重大重構還要比較：</p>
+<ul><li>公開 API／SQL／資料格式是否完全相容。</li><li>效能是否退化。</li><li>錯誤訊息、transaction 邊界與 NULL 行為是否改變。</li><li>新模組是否真的降低 interface 複雜度，而非只搬檔案。</li></ul>
+<div class="prompt">使用 code-review 審查 base commit abc1234 到 HEAD。Spec 軸確認所有外部 SQL、參數順序與錯誤契約維持不變；Standards 軸聚焦 module depth、dependency direction、duplication 與 speculative generality。不要自行修正。</div>
+</div></div>
+</section>
+
+<section class="section" id="bugfix">
+<h2>Bug 修正流程及每一步驟的使用方式</h2>
+<div class="flow">
+<div class="flow-step"><div class="n">1</div><b>Feedback Loop</b><small>一條會抓到該 Bug 的命令</small></div>
+<div class="flow-step"><div class="n">2</div><b>Reproduce</b><small>重現並最小化</small></div>
+<div class="flow-step"><div class="n">3</div><b>Hypotheses</b><small>3–5 個可否證假設</small></div>
+<div class="flow-step"><div class="n">4</div><b>Instrument</b><small>一次改一個變因</small></div>
+<div class="flow-step"><div class="n">5</div><b>Regression Test</b><small>先紅、修正、再綠</small></div>
+<div class="flow-step"><div class="n">6</div><b>Cleanup</b><small>原始情境與審查</small></div>
+</div>
+
+<div class="callout good"><strong>最重要原則</strong>沒有一條能針對使用者所描述症狀「變紅」的快速命令，就不要先猜根因。<code>diagnosing-bugs</code> 把建立回饋迴路視為整個除錯工作的核心。</div>
+<div class="step"><div class="stepno">1</div><div><h3>建立緊密回饋迴路</h3>
+<p>依序嘗試 failing test、curl、CLI fixture、headless browser、trace replay、throwaway harness、property/fuzz、git bisect 或 differential loop。目標是一條已實際跑過、可自動執行、速度以秒計、能抓到精確症狀的命令。</p>
+<div class="prompt">使用 diagnosing-bugs 處理「同一張訂單偶爾重複扣庫存」。第一階段只建立能抓到此精確症狀的 deterministic feedback loop；在有 red-capable command 前，不要提出根因或修改程式。</div>
+</div></div>
+<div class="step"><div class="stepno">2</div><div><h3>重現並縮小到最小案例</h3>
+<p>逐一刪除輸入、設定、呼叫者與資料，刪除後仍重現才繼續。最終每一個剩餘元素都必須是 load-bearing。</p>
+</div></div>
+<div class="step"><div class="stepno">3</div><div><h3>列出 3–5 個可否證假設</h3>
+<p>每個假設都要有預測：「如果 X 是原因，改變 Y 就會讓 Bug 消失／惡化」。先呈現排序，讓領域專家快速重新排序，但不必因無人回覆而停止。</p>
+</div></div>
+<div class="step"><div class="stepno">4</div><div><h3>精準 instrumentation</h3>
+<p>優先 debugger／REPL，其次在能區分假設的邊界加入帶唯一前綴的 targeted logs。效能問題先建立 baseline、profile 或 query plan，不要以大量 log 代替量測。</p>
+</div></div>
+<div class="step"><div class="stepno">5</div><div><h3>在正確 seam 建立回歸測試，再做最小修正</h3>
+<ol><li>把最小重現轉成 failing test。</li><li>確認測試確實先失敗。</li><li>套用最小修正，不順便重構。</li><li>確認測試通過。</li><li>重新跑原始未縮小情境。</li></ol>
+<p>若沒有能重現真實 Bug 模式的 seam，需明確記錄「架構阻止建立可靠回歸測試」，修正完成後再交給 <code>improve-codebase-architecture</code>。</p>
+</div></div>
+<div class="step"><div class="stepno">6</div><div><h3>清理與 code review</h3>
+<ul><li>移除所有 <code>[DEBUG-...]</code> instrumentation。</li><li>刪除 throwaway harness，或移到明確 debug 位置。</li><li>在修正說明記錄真正根因，而不只寫「fix bug」。</li><li>使用 <code>code-review</code> 比較修正前 fixed point，確認沒有 scope creep。</li></ul>
+<div class="prompt">使用 code-review 審查 Bug 修正 commit。Spec 軸以原始 Bug 報告及重現案例為準；Standards 軸確認沒有加入廣泛重構、無關格式化或只為測試而暴露私有實作。</div>
+</div></div>
+</section>
+
+<section class="section" id="large">
+<h2>大型專案流程及每一步驟的使用方式</h2>
+<p>當目標大到一個 agent session 放不下，而且尚有大量決策未知時，不要先建立數十張實作 ticket。先使用 <code>wayfinder</code> 建立決策地圖。</p>
+<div class="flow">
+<div class="flow-step"><div class="n">1</div><b>Name Destination</b><small>清楚定義抵達條件</small></div>
+<div class="flow-step"><div class="n">2</div><b>Chart Map</b><small>決策、fog、out of scope</small></div>
+<div class="flow-step"><div class="n">3</div><b>Research / Prototype</b><small>並行清除外部未知</small></div>
+<div class="flow-step"><div class="n">4</div><b>Resolve Frontier</b><small>每 session 一張決策票</small></div>
+<div class="flow-step"><div class="n">5</div><b>Spec + Tickets</b><small>方向清楚後才切實作</small></div>
+<div class="flow-step"><div class="n">6</div><b>Incremental Delivery</b><small>逐張實作與審查</small></div>
+</div>
+<div class="step"><div class="stepno">1</div><div><h3>命名 Destination</h3>
+<p>Destination 不是模糊的「完成 ERP 改造」，而是可判定的終點，例如「完成經核准、可交給實作團隊的 SQL 產生機制 v2 規格與遷移路線」。它會決定 scope。</p>
+</div></div>
+<div class="step"><div class="stepno">2</div><div><h3>建立 Map issue</h3>
+<p>Map 是低解析度索引，不重複儲存所有細節。內容包含 Destination、Notes、Decisions so far、Not yet specified、Out of scope。可精確描述的問題建立 child decision tickets，尚不能精確提問的內容保留在 fog。</p>
+<div class="prompt">使用 wayfinder 為「將既有 SQL 字串拼接改為可驗證 AST 與多 dialect 架構」建立決策地圖。Destination 是完成經核准的規格、遷移策略、相容性矩陣與驗證計畫；目前只規劃決策，不實作程式。</div>
+</div></div>
+<div class="step"><div class="stepno">3</div><div><h3>選擇 ticket 類型</h3>
+<table><thead><tr><th>類型</th><th>適用情境</th><th>例子</th></tr></thead><tbody>
+<tr><td>Research</td><td>需要外部文件或既有系統事實</td><td>確認三種資料庫的 pagination、NULL ordering 與參數限制</td></tr>
+<tr><td>Prototype</td><td>需要具體可運行產物才能決定</td><td>比較兩種 AST interface 與錯誤模型</td></tr>
+<tr><td>Grilling</td><td>需要人類領域決策</td><td>是否允許 caller 提供 raw SQL escape hatch</td></tr>
+<tr><td>Task</td><td>需要先完成一件事才能做決策</td><td>匯出現有 production SQL 樣本並去識別化</td></tr>
+</tbody></table>
+</div></div>
+<div class="step"><div class="stepno">4</div><div><h3>每個 session 只解一張 frontier ticket</h3>
+<p>先 claim，再讀必要的相關決策；完成後將答案記錄為 resolution、關閉 ticket、在 Map 中新增一行 context pointer，並依新資訊新增或調整 tickets。不要每次載入整張地圖所有細節。</p>
+</div></div>
+<div class="step"><div class="stepno">5</div><div><h3>路線清楚後，才轉成規格與實作 tickets</h3>
+<p>當所有抵達 Destination 前的決策都已清楚，使用 <code>to-spec</code> 固化；再用 <code>to-tickets</code> 建立可執行的垂直切片。Wayfinder tickets 是「決策」，to-tickets 產物才是「要建造的工作」。</p>
+</div></div>
+<div class="step"><div class="stepno">6</div><div><h3>控制上下文與多 Agent 併行</h3>
+<ul><li>每張 ticket 使用新 session，先讀 Map gist、該 ticket、相關 CONTEXT/ADR。</li><li>只併行無 blocking edge 的 frontier tickets。</li><li>共享成果透過 Issue、commit、ADR、CONTEXT.md，不靠聊天記憶。</li><li>實作階段可再搭配 Git worktree 或 SwarmForge，但 Skills 保持工程方法來源。</li></ul>
+</div></div>
+</section>
+
+<section class="section" id="codex">
+<h2>Codex 安裝方式詳細步驟</h2>
+<div class="callout good"><strong>推薦範圍：專案級</strong>Codex 官方會從目前目錄一路掃描到 repo root 的 <code>.agents/skills/</code>。專案級安裝可提交到 Git，團隊與其他 Agent 也能共用。</div>
+<h3>步驟 1：安裝必要工具</h3>
+<p>準備 Git、Node.js LTS（提供 <code>npm</code>/<code>npx</code>）以及 Codex。若尚未安裝 Codex CLI：</p>
+<div class="codebox"><button class="copy">複製</button><pre><code>npm install -g @openai/codex
+codex --version</code></pre></div>
+<h3>步驟 2：進入專案根目錄並列出可安裝 Skills</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>cd path/to/your-project
+npx skills@latest add mattpocock/skills --list</code></pre></div>
+<h3>步驟 3：互動式安裝到 Codex</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>npx skills@latest add mattpocock/skills -a codex</code></pre></div>
+<p>安裝時建議：</p>
+<ul><li>Scope 選 Project。</li><li>至少選 <code>setup-matt-pocock-skills</code>。</li><li>再選本指南核心技能：<code>grill-with-docs</code>、<code>grilling</code>、<code>domain-modeling</code>、<code>to-spec</code>、<code>to-tickets</code>、<code>implement</code>、<code>tdd</code>、<code>diagnosing-bugs</code>、<code>code-review</code>、<code>codebase-design</code>、<code>improve-codebase-architecture</code>、<code>wayfinder</code>、<code>research</code>、<code>prototype</code>。</li><li>Windows 若 symlink 失敗，重跑並選 Copy，或加 <code>--copy</code>。</li></ul>
+<details><summary>非互動式：安裝建議核心包</summary><div><div class="codebox"><button class="copy">複製</button><pre><code>npx skills@latest add mattpocock/skills -a codex --copy -y \
+  --skill setup-matt-pocock-skills \
+  --skill grill-with-docs \
+  --skill grilling \
+  --skill domain-modeling \
+  --skill to-spec \
+  --skill to-tickets \
+  --skill implement \
+  --skill tdd \
+  --skill diagnosing-bugs \
+  --skill code-review \
+  --skill codebase-design \
+  --skill improve-codebase-architecture \
+  --skill wayfinder \
+  --skill research \
+  --skill prototype</code></pre></div><p class="muted">PowerShell 不支援反斜線續行；可貼成單行，或把 <code>\</code> 改為 PowerShell backtick。</p></div></details>
+<h3>步驟 4：確認安裝位置</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>npx skills list -a codex
+# 專案目錄應可看到：
+# .agents/skills/&lt;skill-name&gt;/SKILL.md</code></pre></div>
+<h3>步驟 5：重新開啟 Codex 並執行 setup</h3>
+<p>Codex 可自動偵測變更；若清單沒更新，重新啟動。輸入 <code>/skills</code> 可查看技能，或用 <code>$</code> 明確提及。</p>
+<div class="codebox"><button class="copy">複製</button><pre><code>codex
+# 在 Codex 對話中輸入：
+$setup-matt-pocock-skills</code></pre></div>
+<h3>步驟 6：後續更新與停用</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code># 更新專案 skills
+npx skills update -p
+
+# 查看已安裝 skills
+npx skills list -a codex
+
+# 移除特定 skill
+npx skills remove --agent codex &lt;skill-name&gt;</code></pre></div>
+<p>若要保留檔案但暫停某個 Codex skill，可在 <code>~/.codex/config.toml</code> 加入：</p>
+<div class="codebox"><button class="copy">複製</button><pre><code>[[skills.config]]
+path = "/absolute/path/to/.agents/skills/example/SKILL.md"
+enabled = false</code></pre></div>
+<div class="callout warn"><strong>Codex 原生 Plugin 與 skills.sh 的差異</strong>此專案目前沒有原生 Codex plugin；作者明確保留 <code>skills.sh</code> 作為 Codex 的通用安裝途徑。這不影響專案級 Skills 使用。</div>
+</section>
+
+<section class="section" id="opencode">
+<h2>OpenCode 安裝方式詳細步驟</h2>
+<h3>步驟 1：安裝 OpenCode</h3>
+<p>Windows 11 可直接安裝，但官方建議 WSL 以取得較完整的終端與檔案系統相容性。</p>
+<div class="grid cols2"><div class="card"><h4>WSL / Linux / macOS</h4><div class="codebox"><button class="copy">複製</button><pre><code>curl -fsSL https://opencode.ai/install | bash
+opencode --version</code></pre></div></div><div class="card"><h4>Windows 原生 npm</h4><div class="codebox"><button class="copy">複製</button><pre><code>npm install -g opencode-ai
+opencode --version</code></pre></div></div></div>
+<p>第一次啟動後使用 <code>/connect</code> 設定模型供應商。OpenCode 本身通常需要你選擇並授權 LLM provider。</p>
+<h3>步驟 2：在專案根目錄安裝 Skills</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>cd path/to/your-project
+npx skills@latest add mattpocock/skills -a opencode</code></pre></div>
+<p>建議 Project scope。skills CLI 會安裝到 OpenCode 可辨識的專案技能位置；目前 OpenCode 會掃描 <code>.opencode/skills</code>、<code>.claude/skills</code> 與 <code>.agents/skills</code>。</p>
+<h3>步驟 3：驗證 Skills</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>npx skills list -a opencode
+opencode</code></pre></div>
+<p>OpenCode 不保證把每個 Skill 直接變成 slash command。最穩定做法是在提示詞中明確寫：</p>
+<div class="prompt">Use the setup-matt-pocock-skills skill to configure this repository. Show the proposed files before writing.</div>
+<p>Agent 會透過原生 <code>skill</code> tool 載入。若沒有載入，可要求：「先列出 available skills，然後載入 setup-matt-pocock-skills」。</p>
+<h3>步驟 4：確認權限</h3>
+<p>若 Skills 不可見，檢查 <code>opencode.json</code> 是否禁止 skill tool。可以設定：</p>
+<div class="codebox"><button class="copy">複製</button><pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": {
+      "*": "allow"
+    },
+    "bash": "ask",
+    "edit": "ask"
+  }
+}</code></pre></div>
+<div class="callout warn"><strong>相容性注意</strong>OpenCode 只辨識標準 frontmatter 欄位，未知欄位會被忽略。因此 Matt Skills 中的 <code>disable-model-invocation: true</code> 不會在 OpenCode 中強制「只能手動呼叫」。若你不希望某些技能被自動選用，可透過 OpenCode skill permissions 限制，或調整專案內 skill 的 description。</div>
+<h3>步驟 5：Windows 建議路徑</h3>
+<p>大型 repo 建議放在 WSL 自己的檔案系統，例如 <code>~/code/project</code>，而不是長期放在 <code>/mnt/c</code> 或 <code>/mnt/d</code>。若必須存取 Windows 目錄仍可使用，但 Git、watcher 與大量小檔案作業通常在 Linux filesystem 較順。</p>
+</section>
+
+<section class="section" id="antigravity">
+<h2>Antigravity 安裝方式詳細步驟</h2>
+<p>以下同時涵蓋 Antigravity IDE 與 Antigravity CLI。若你偏好終端、遠端 SSH、較低資源消耗與 slash commands，建議 CLI；若需要完整視覺工作區，選 IDE。</p>
+<h3>步驟 1A：安裝 Antigravity CLI</h3>
+<div class="grid cols2"><div class="card"><h4>Windows PowerShell</h4><div class="codebox"><button class="copy">複製</button><pre><code>irm https://antigravity.google/cli/install.ps1 | iex
+agy --version</code></pre></div></div><div class="card"><h4>macOS / Linux</h4><div class="codebox"><button class="copy">複製</button><pre><code>curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy --version</code></pre></div></div></div>
+<p>首次執行：</p>
+<div class="codebox"><button class="copy">複製</button><pre><code>cd path/to/your-project
+agy</code></pre></div>
+<p>CLI 會嘗試使用作業系統安全 keyring；沒有既有 session 時會開啟瀏覽器進行 Google Sign-In。SSH 環境會提供授權 URL 與代碼流程。</p>
+<h3>步驟 1B：安裝 Antigravity IDE</h3>
+<p>至官方 Download 頁面選擇 Windows x64／ARM64、macOS 或 Linux 安裝包。Windows 最低為 64 位元 Windows 10。安裝後建立 Project，加入本機 repo 資料夾。</p>
+<h3>步驟 2：專案級安裝 Skills</h3>
+<p>IDE 與 CLI 的共同安全路徑是 repo 根目錄的 <code>.agents/skills/</code>。使用 CLI 安裝器：</p>
+<div class="codebox"><button class="copy">複製</button><pre><code># Antigravity IDE
+npx skills@latest add mattpocock/skills -a antigravity
+
+# Antigravity CLI
+npx skills@latest add mattpocock/skills -a antigravity-cli</code></pre></div>
+<p>兩者的 Project path 都會落在 <code>.agents/skills/</code>。若同一 repo 同時使用 IDE 與 CLI，安裝一次到專案路徑即可；不必複製兩套。</p>
+<h3>步驟 3：在 CLI 中驗證與呼叫</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>agy
+/skills
+/setup-matt-pocock-skills</code></pre></div>
+<p>Antigravity CLI 會把 workspace Skills 轉成 slash commands。若使用 IDE，可在提示詞中寫：</p>
+<div class="prompt">Use the setup-matt-pocock-skills skill. Configure this workspace, but show all proposed changes before editing files.</div>
+<h3>步驟 4：全域安裝的差異</h3>
+<table><thead><tr><th>產品</th><th>官方全域路徑</th><th>建議</th></tr></thead><tbody>
+<tr><td>Antigravity IDE / shared harness</td><td><code>~/.gemini/config/skills/</code></td><td>只放真正跨所有專案都適用的個人技能</td></tr>
+<tr><td>Antigravity CLI</td><td><code>~/.gemini/antigravity-cli/skills/</code></td><td>CLI 專用全域 slash commands</td></tr>
+<tr><td>Workspace / repo</td><td><code>.agents/skills/</code></td><td><strong>本指南最推薦</strong>，可版本控制且跨 Agent</td></tr>
+</tbody></table>
+<div class="callout warn"><strong>不要混用舊路徑</strong>舊 Gemini CLI 專案可能把 skills 放在 <code>.gemini/skills/</code>；Antigravity CLI 的 workspace skills 應移到 <code>.agents/skills/</code>。</div>
+<h3>步驟 5：設定與權限</h3>
+<p>CLI 可用 <code>/config</code>、<code>/permissions</code> 調整執行權限；建議對 shell、刪除、Git push 與外部寫入保留人工核准。輸入 <code>?</code> 可查看所有 slash commands。</p>
+</section>
+
+<section class="section" id="examples">
+<h2>其他重要建議及實際操作範例</h2>
+<h3>範例一：新 ERP 模組</h3>
+<div class="card"><p><span class="badge">目標</span> 建立採購請款模組，包含申請、審核、退回、付款與稽核。</p>
+<ol><li><strong>Setup：</strong>確認 GitHub Issues、<code>CONTEXT.md</code>、ADR 與 <code>plan/</code> 路徑。</li><li><strong>Grill：</strong>釐清 Request、Approval、Payment、Rejection 等領域詞彙與狀態。</li><li><strong>Prototype：</strong>先做狀態機或操作畫面原型，讓財務人員確認。</li><li><strong>Spec：</strong>固化角色、user stories、權限、錯誤與測試 seam。</li><li><strong>Tickets：</strong>建立「提交最小請款」、「主管核准」、「退回補件」、「付款完成」等垂直切片。</li><li><strong>Implement：</strong>一張一張以 TDD 完成。</li><li><strong>Review：</strong>對照 spec 與 coding standards。</li></ol></div>
+<div class="prompt">使用 grill-with-docs 規劃採購請款模組。先建立領域語言，尤其區分請款單、付款單、核准、退回與作廢；用具體情境檢查部分核准、重複付款、跨期與權限代理。未完成需求釐清前不要建立程式碼。</div>
+
+<h3>範例二：SQL 產生器重大重構</h3>
+<div class="card"><ol><li>用 <code>improve-codebase-architecture</code> 找出 dialect 洩漏與 shallow modules。</li><li>用 <code>wayfinder</code> 分別決定 AST、binding、quoting、pagination、NULL、transaction 與 migration。</li><li>建立舊版/新版 differential harness。</li><li>用 expand–contract tickets 逐步遷移。</li><li>每一批執行 SQL snapshot、實際 DB integration tests 與 code review。</li></ol></div>
+<div class="prompt">使用 wayfinder 規劃 SQL 產生器 v2。Destination 必須包含：核准的 AST public interface、MySQL/PostgreSQL/SQL Server dialect 矩陣、參數綁定規則、舊 API 遷移方式、差異測試與回滾策略。只建立決策地圖，不直接寫程式。</div>
+
+<h3>範例三：偶發 Session 錯亂</h3>
+<div class="card"><ol><li><code>diagnosing-bugs</code> 建立可大量重跑的多 session harness。</li><li>提高重現率，固定亂數、時間與測試資料。</li><li>列出 session key collision、共享 cookie jar、race condition、cleanup 過早等可否證假設。</li><li>在正確 boundary 加 instrumentation。</li><li>先建立 regression test，再修正。</li><li>若無法在 public seam 測試，修正後另外建立 architecture ticket。</li></ol></div>
+<div class="prompt">使用 diagnosing-bugs 分析多使用者 Session 偶爾互相污染。先建立可以平行模擬至少 50 個使用者並驗證 session 隔離的 feedback loop；沒有重現命令前禁止猜測根因。</div>
+
+<h3>範例四：只審核計畫，不寫程式</h3>
+<div class="prompt">讀取指定計畫、CONTEXT.md、ADR 與目前 codebase。使用 code-review 的 Spec/Standards 分離思維審核計畫，但不要執行 implement、不要修改任何檔案、不要 commit。輸出阻斷問題、風險、缺少驗證及建議的 ticket 切分。</div>
+
+<h3>範例五：跨上下文交接</h3>
+<div class="prompt">使用 wayfinder 管理此長期工作。每次 session 僅處理一張 frontier ticket；完成後把決策、證據、影響與下一步寫回 Issue/Map。不要依賴聊天摘要作為唯一交接來源。</div>
+</section>
+
+<section class="section" id="advice">
+<h2>其他重要建議</h2>
+<div class="grid cols2">
+<div class="card"><h3>1. 優先專案級，不要一開始全域安裝</h3><p>專案不同，術語、測試、Issue Tracker 與安全限制也不同。將 skills 放在 <code>.agents/skills/</code>，讓行為可被 review、版本控制與回退。</p></div>
+<div class="card"><h3>2. 安裝前先讀 Skill</h3><p>Skill 是會影響 Agent 決策的操作性文字，有時還帶 scripts。第三方 skill 應視為程式碼供應鏈的一部分，先檢查指令、外部下載、刪除與自動提交行為。</p></div>
+<div class="card"><h3>3. 修改 implement 的提交規則</h3><p>建議將「Commit your work」改成「除非使用者明確要求，不得 commit、push、merge 或建立 PR」。這符合你先審核結果的工作方式。</p></div>
+<div class="card"><h3>4. 控制 Skill 數量</h3><p>安裝太多會增加初始技能清單與選擇混亂。依專案只保留實際需要的核心組合，實驗性或個人技能不要直接導入正式 repo。</p></div>
+<div class="card"><h3>5. 規格與術語分開</h3><p><code>CONTEXT.md</code> 是 glossary，不是需求書；spec 是本次改動要求；ADR 是難以逆轉的架構取捨；<code>AGENTS.md</code> 是長期操作規則。不要混成一份巨型文件。</p></div>
+<div class="card"><h3>6. 用證據結束任務</h3><p>完成報告至少應列出變更、測試命令與結果、未解風險、spec 對應與未執行項目。不要只說「已完成」。</p></div>
+</div>
+<h3>建議加入專案 AGENTS.md 的規則</h3>
+<div class="codebox"><button class="copy">複製</button><pre><code>## Agent skills operating rules
+
+- Skills are project-scoped under `.agents/skills/`; do not change global skills.
+- Existing planning documents remain under `plan/`; do not create duplicate-purpose folders.
+- Before implementation, read `CONTEXT.md`, relevant ADRs, and the originating spec/ticket.
+- Do not commit, push, merge, create a PR, or modify issue state unless explicitly requested.
+- For large work, use one fresh session per frontier ticket and persist decisions in the tracker.
+- For bugs, establish a red-capable reproduction command before proposing a root cause.
+- Report exact verification commands and results at handoff.</code></pre></div>
+<h3>建議工作流選擇表</h3>
+<table><thead><tr><th>工作</th><th>最小技能組合</th><th>不要先做</th></tr></thead><tbody>
+<tr><td>新功能</td><td>grill-with-docs → to-spec → to-tickets → implement → code-review</td><td>直接讓 Agent 自由實作整個需求</td></tr>
+<tr><td>小型 Bug</td><td>diagnosing-bugs → tdd → code-review</td><td>先猜原因、先大幅重構</td></tr>
+<tr><td>重大重構</td><td>improve-codebase-architecture → grill/wayfinder → to-spec → to-tickets → review</td><td>一次取代所有舊介面</td></tr>
+<tr><td>長期大型專案</td><td>wayfinder → research/prototype/grilling → to-spec → tickets</td><td>在未知仍很多時先切幾十張實作票</td></tr>
+<tr><td>純計畫審核</td><td>domain-modeling + code-review 思維</td><td>啟動 implement 或自動 commit</td></tr>
+</tbody></table>
+</section>
+
+<section class="section" id="troubleshoot">
+<h2>故障排除</h2>
+<details><summary>安裝後看不到 Skills</summary><div><ol><li>確認檔名是大寫 <code>SKILL.md</code>。</li><li>確認 YAML frontmatter 有 <code>name</code> 與 <code>description</code>。</li><li>確認資料夾位於 repo root 的 <code>.agents/skills/&lt;name&gt;/</code>。</li><li>重新啟動 Agent 或開新 session。</li><li>用 <code>npx skills list</code> 檢查安裝結果。</li></ol></div></details>
+<details><summary>Windows 建立 symlink 失敗</summary><div><p>重新安裝並選 Copy，或加 <code>--copy</code>。Project skills 很適合直接複製並提交到 Git，代價只是更新時需重新同步。</p></div></details>
+<details><summary>Codex 無法用 /skill-name</summary><div><p>Codex 的明確技能呼叫使用 <code>$skill-name</code>，或先輸入 <code>/skills</code> 選擇；<code>/skill-name</code> 不是通用格式。</p></div></details>
+<details><summary>OpenCode 沒有對應 slash command</summary><div><p>這是正常現象。用自然語言寫「Use the xxx skill」，OpenCode 會透過原生 skill tool 載入。再檢查 <code>opencode.json</code> 的 skill permission。</p></div></details>
+<details><summary>Antigravity CLI 找不到 skill</summary><div><p>確認 workspace 路徑是 <code>.agents/skills/</code>，不是舊的 <code>.gemini/skills/</code>。在 CLI 執行 <code>/skills</code>，必要時結束後重新從 repo root 執行 <code>agy</code>。</p></div></details>
+<details><summary>setup 想建立不需要的文件結構</summary><div><p>先要求它顯示草稿；明確指定沿用 <code>AGENTS.md</code> 與現有 <code>plan/</code>，並將你的偏好寫入 setup 產生的 <code>docs/agents/*.md</code>。不要在未審核時直接接受寫入。</p></div></details>
+<details><summary>Agent 自動使用了原本想手動啟動的 skill</summary><div><p>Codex 可在 <code>agents/openai.yaml</code> 設定 <code>policy.allow_implicit_invocation: false</code>。OpenCode 可用 skill permissions；Antigravity 可調整 description 或只在需要的 repo 安裝。</p></div></details>
+</section>
+
+<section class="section" id="sources">
+<h2>資料來源與版本說明</h2>
+<p>本指南依 2026-07-25 可取得的專案內容與官方文件整理。工具介面及路徑仍可能更新；遇到差異時，以官方文件與你安裝版本的 <code>--help</code> 為準。</p>
+<ol class="source-list">
+<li><a href="https://github.com/mattpocock/skills" target="_blank" rel="noopener">mattpocock/skills repository</a> — 技能清單、流程與 quickstart。</li>
+<li><a href="https://github.com/mattpocock/skills/blob/main/README.md" target="_blank" rel="noopener">mattpocock/skills README</a> — 安裝、設計原則與技能說明。</li>
+<li><a href="https://github.com/vercel-labs/skills" target="_blank" rel="noopener">vercel-labs/skills</a> — <code>npx skills</code> CLI、agent target 與安裝位置。</li>
+<li><a href="https://learn.chatgpt.com/docs/build-skills" target="_blank" rel="noopener">OpenAI Codex — Build skills</a> — Codex 技能位置、<code>$skill</code>、<code>/skills</code>、停用設定。</li>
+<li><a href="https://opencode.ai/docs/skills" target="_blank" rel="noopener">OpenCode — Agent Skills</a> — 掃描路徑、skill tool、frontmatter 與 permissions。</li>
+<li><a href="https://opencode.ai/docs/" target="_blank" rel="noopener">OpenCode — Installation</a> — 安裝命令與 Windows/WSL 建議。</li>
+<li><a href="https://antigravity.google/docs/skills" target="_blank" rel="noopener">Google Antigravity — Skills</a> — workspace/global 技能位置與啟用方式。</li>
+<li><a href="https://antigravity.google/docs/cli/install" target="_blank" rel="noopener">Antigravity CLI — Installation & Auth</a> — Windows、macOS、Linux 安裝與登入。</li>
+<li><a href="https://antigravity.google/docs/cli/plugins" target="_blank" rel="noopener">Antigravity CLI — Plugins & Skills</a> — slash command 轉換與 CLI global path。</li>
+<li><a href="https://antigravity.google/download" target="_blank" rel="noopener">Antigravity Download</a> — IDE 與 CLI 官方下載。</li>
+</ol>
+</section>
+</main></div>
+<footer class="footer">此指南為獨立整理文件，非 mattpocock/skills、OpenAI、OpenCode 或 Google 的官方手冊。</footer>
+<script>
+const root=document.documentElement, btn=document.getElementById('themeBtn');
+const saved=localStorage.getItem('guide-theme'); if(saved){root.dataset.theme=saved;btn.textContent=saved==='dark'?'淺色模式':'深色模式'}
+btn.addEventListener('click',()=>{const d=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=d;localStorage.setItem('guide-theme',d);btn.textContent=d==='dark'?'淺色模式':'深色模式'});
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',async()=>{const t=b.parentElement.querySelector('code').innerText;try{await navigator.clipboard.writeText(t);b.textContent='已複製';b.classList.add('ok');setTimeout(()=>{b.textContent='複製';b.classList.remove('ok')},1300)}catch(e){b.textContent='請手動複製'}}));
+const links=[...document.querySelectorAll('.toc a')], secs=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id))}})},{rootMargin:'-20% 0px -70% 0px'});secs.forEach(s=>obs.observe(s));
+</script>
+</body></html>
