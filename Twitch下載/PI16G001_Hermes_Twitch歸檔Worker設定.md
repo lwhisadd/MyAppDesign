@@ -4,6 +4,7 @@
 > 適用範圍：僅限 `Twitch下載/` context。  
 > 使用者需求：Twitch 影片每日定時下載工作交由 Hermes agent 管理。  
 > 建立日期：2026-08-09
+> 最近更新：2026-08-09，加入低磁碟空間通知規則。
 
 ---
 
@@ -28,7 +29,7 @@ Agent 必須遵守：
 1. `Twitch下載/README.md`
 2. `Twitch下載/PI16G001_Hermes_Twitch歸檔Worker設定.md`
 
-本文件中的「任務變數區塊」是 Twitch 歸檔任務的設定來源之一。Agent 不得將 Twitch 頻道、下載來源、輸出路徑或排程硬編碼在 prompt、shell script 或 execution manifest 中。
+本文件中的「任務變數區塊」是 Twitch 歸檔任務的設定來源之一。Agent 不得將 Twitch 頻道、下載來源、輸出路徑、排程、磁碟門檻或通知行為硬編碼在 prompt、shell script、systemd unit 或 execution manifest 中。
 
 Agent 必須遵守以下規則：
 
@@ -39,9 +40,10 @@ Agent 必須遵守以下規則：
 5. Twitch 影片成品、metadata、暫存、archive 狀態檔、頻道清單檔與 log 路徑，必須全部從 `storage.STORAGE_PATH_VARIABLES` 讀取。
 6. Agent 不得在 prompt、shell script、systemd unit 或 execution manifest 中自行寫死任何存放路徑。
 7. 若需要變更存放路徑，應更新本文件的 `storage.STORAGE_PATH_VARIABLES`，而不是修改 worker 腳本。
-8. 若變數與實機狀態不一致，Agent 必須標示為待確認，不得自行猜測。
-9. 若需要修改頻道清單或排程，應更新本文件，而不是修改 worker 腳本。
-10. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret 或其他機密資訊。
+8. 若需要變更低磁碟空間門檻或通知行為，應更新本文件的 `notification.low_disk_space` 與 `failure_policy`。
+9. 若變數與實機狀態不一致，Agent 必須標示為待確認，不得自行猜測。
+10. 若需要修改頻道清單或排程，應更新本文件，而不是修改 worker 腳本。
+11. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret、通知 webhook secret 或其他機密資訊。
 
 ---
 
@@ -317,9 +319,55 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
     output_path_template: "{output_root}/{channel_name}/{upload_date}_{video_id}_{safe_title}.{ext}"
 
     # 最低可用空間門檻，單位 GB。
-    # 用途：開始任務前檢查輸出根目錄剩餘容量；低於此值時應阻塞任務。
-    # 注意：此值不是保留空間保證，只是任務啟動門檻。
-    min_free_space_gb: 20
+    # 用途：開始任務前檢查輸出根目錄剩餘容量；低於此值時必須通知使用者並阻擋下載任務。
+    # 使用者決策：剩餘空間低於 1GB 時通知使用者。
+    # 注意：此值不是保留空間保證，只是任務啟動與告警門檻。
+    min_free_space_gb: 1
+
+  # 通知設定。
+  # 用途：定義 Hermes 或 runner 遇到需要人工介入的情況時如何通知使用者。
+  # 注意：本文件只保存非機密設定；實際 webhook、token 或密碼不得寫入本 repo。
+  notification:
+    # 低磁碟空間通知設定。
+    # 用途：當影片輸出根目錄可用空間低於門檻時，通知使用者處理。
+    low_disk_space:
+      # 是否啟用低空間通知。
+      # 使用者決策：啟用。
+      enabled: true
+
+      # 低空間通知門檻，單位 GB。
+      # 用途：當 active output root 的可用空間低於此值時觸發通知。
+      # 使用者決策：低於 1GB 時通知。
+      threshold_free_space_gb: 1
+
+      # 通知對象。
+      # 用途：表示通知要送給使用者本人；實際聯絡方式另由通知管道設定決定。
+      notify_target: "user"
+
+      # 通知管道。
+      # 用途：指定實際要用哪種方式通知，例如 telegram、email、line、discord、webhook 或 Hermes UI。
+      # 目前狀態：尚未討論，因此先標示待設定；Agent 不得自行猜測或填入 token。
+      notify_channel: "to_be_configured"
+
+      # 通知訊息模板。
+      # 用途：Hermes 發送通知時可套用此模板；runner 應填入實際主機、路徑與剩餘空間。
+      # 可用變數：{worker_id}、{output_root}、{free_space_gb}、{threshold_free_space_gb}、{task_id}。
+      message_template: "Twitch 下載節點 {worker_id} 的輸出路徑 {output_root} 剩餘空間 {free_space_gb}GB，已低於門檻 {threshold_free_space_gb}GB。任務 {task_id} 已停止，請人工處理磁碟空間。"
+
+      # 低空間時是否阻擋下載任務。
+      # 用途：避免剩餘空間不足時繼續下載，導致系統磁碟被塞滿。
+      # 使用者只指定通知；本設計保守處理為通知並阻擋任務。
+      block_download_when_triggered: true
+
+      # 是否允許 Agent 自動刪除影片以釋放空間。
+      # 用途：防止未經授權刪除已保存影片。
+      # 使用者目前沒有授權自動刪檔，因此固定 false。
+      auto_delete_files: false
+
+      # 通知後的任務狀態。
+      # 用途：寫入 result.json、download-report.json 與 Hermes DB。
+      # 行為：需要使用者處理磁碟空間後再重新派工。
+      task_status_after_notification: "blocked_needs_user_action"
 
   # 任務產物設定。
   # 用途：定義每次 Twitch 歸檔任務完成後，task 目錄必須出現哪些檔案。
@@ -362,9 +410,10 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
     # 行為：若允許 fallback 且 fallback 可用，改用 fallback；否則阻塞任務。
     if_output_root_missing: "blocked_unless_fallback_available"
 
-    # 可用空間低於 min_free_space_gb 時的處理。
-    # 行為：阻塞任務，避免下載到一半塞滿磁碟。
-    if_free_space_below_minimum: "blocked"
+    # 可用空間低於 storage.min_free_space_gb 或 notification.low_disk_space.threshold_free_space_gb 時的處理。
+    # 使用者決策：低於 1GB 時通知使用者。
+    # 行為：通知使用者，阻擋下載，不自動刪檔。
+    if_free_space_below_minimum: "notify_user_and_block_task"
 
     # 單一影片失敗時的處理。
     # 行為：繼續處理其他影片，並把失敗項目寫入 failed-items.json。
@@ -390,7 +439,23 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
 
 ---
 
-## 5. Agent 執行說明
+## 5. 低磁碟空間通知規則
+
+使用者已指定：**剩餘空間低於 1GB 時向使用者通知。**
+
+Agent / Hermes / runner 必須遵守：
+
+1. 任務開始前檢查 `active_output_root_variable` 指向的輸出根目錄可用空間。
+2. 若可用空間低於 `notification.low_disk_space.threshold_free_space_gb`，必須觸發通知。
+3. 通知後不得繼續下載影片。
+4. 不得自動刪除任何已下載影片。
+5. 任務狀態應寫成 `blocked_needs_user_action`。
+6. `result.json` 與 `download-report.json` 必須記錄實際路徑、剩餘空間、門檻值與通知狀態。
+7. 實際通知管道仍為 `to_be_configured`，未設定前 Agent 不得假設可送出 Telegram、Email、LINE、Discord 或 webhook。
+
+---
+
+## 6. Agent 執行說明
 
 Hermes 建立每日任務時，應依本文件產生任務資料。
 
@@ -406,11 +471,11 @@ TASK-YYYYMMDD-TWITCH-ARCHIVE-NNN
 依照 Twitch下載/PI16G001_Hermes_Twitch歸檔Worker設定.md 中的 HERMES_TWITCH_ARCHIVE_VARIABLES，下載 TWITCH_CHANNEL_SOURCES 內啟用來源的新 Twitch VOD，避免重複下載，並產出任務結果摘要。
 ```
 
-Worker 實際執行時，應使用 manifest 中的變數，不得自行覆寫 Twitch 來源或存放路徑。
+Worker 實際執行時，應使用 manifest 中的變數，不得自行覆寫 Twitch 來源、存放路徑、磁碟門檻或通知策略。
 
 ---
 
-## 6. 頻道來源填寫規則
+## 7. 頻道來源填寫規則
 
 `TWITCH_CHANNEL_SOURCES` 由使用者或授權 Agent 維護。
 
@@ -434,11 +499,12 @@ note: "用途或授權備註"
 
 ---
 
-## 7. 設計原則
+## 8. 設計原則
 
 - Hermes 管任務生命週期。
 - PI16G001 worker 管實際執行。
 - yt-dlp 只負責下載。
 - systemd 只負責啟動與保底，不作為任務真相來源。
-- Twitch 來源、排程設定與存放路徑以本文件變數為準。
+- Twitch 來源、排程設定、存放路徑、磁碟門檻與通知策略以本文件變數為準。
+- 剩餘空間低於 1GB 時通知使用者、阻擋任務、不自動刪檔。
 - 任務狀態與派工真相應寫入本專案自己的 Hermes 狀態資料庫，不依賴對話記憶。
