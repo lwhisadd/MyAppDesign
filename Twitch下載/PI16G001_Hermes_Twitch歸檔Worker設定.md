@@ -4,7 +4,7 @@
 > 適用範圍：僅限 `Twitch下載/` context。  
 > 使用者需求：Twitch 影片每日定時下載工作交由 Hermes agent 管理。  
 > 建立日期：2026-08-09
-> 最近更新：2026-08-09，加入低磁碟空間通知規則。
+> 最近更新：2026-08-09，加入低磁碟空間 Discord 通知規則。
 
 ---
 
@@ -43,7 +43,8 @@ Agent 必須遵守以下規則：
 8. 若需要變更低磁碟空間門檻或通知行為，應更新本文件的 `notification.low_disk_space` 與 `failure_policy`。
 9. 若變數與實機狀態不一致，Agent 必須標示為待確認，不得自行猜測。
 10. 若需要修改頻道清單或排程，應更新本文件，而不是修改 worker 腳本。
-11. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret、通知 webhook secret 或其他機密資訊。
+11. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret、Discord webhook secret、Discord bot token 或其他機密資訊。
+12. 低磁碟空間通知使用 Hermes 既有 Discord 綁定；Agent 只能呼叫 Hermes runtime 的既有通知能力，不得自行新增或猜測 Discord webhook URL。
 
 ---
 
@@ -326,10 +327,10 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
 
   # 通知設定。
   # 用途：定義 Hermes 或 runner 遇到需要人工介入的情況時如何通知使用者。
-  # 注意：本文件只保存非機密設定；實際 webhook、token 或密碼不得寫入本 repo。
+  # 注意：本文件只保存非機密設定；實際 Discord webhook、bot token 或頻道機密不得寫入本 repo。
   notification:
     # 低磁碟空間通知設定。
-    # 用途：當影片輸出根目錄可用空間低於門檻時，通知使用者處理。
+    # 用途：當影片輸出根目錄可用空間低於門檻時，透過 Hermes 既有 Discord 綁定通知使用者處理。
     low_disk_space:
       # 是否啟用低空間通知。
       # 使用者決策：啟用。
@@ -341,16 +342,27 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
       threshold_free_space_gb: 1
 
       # 通知對象。
-      # 用途：表示通知要送給使用者本人；實際聯絡方式另由通知管道設定決定。
+      # 用途：表示通知要送給使用者本人；實際 Discord 頻道由 Hermes 既有綁定決定。
       notify_target: "user"
 
       # 通知管道。
-      # 用途：指定實際要用哪種方式通知，例如 telegram、email、line、discord、webhook 或 Hermes UI。
-      # 目前狀態：尚未討論，因此先標示待設定；Agent 不得自行猜測或填入 token。
-      notify_channel: "to_be_configured"
+      # 用途：指定低磁碟空間通知走 Discord。
+      # 使用者決策：Hermes 本身已經有綁定 Discord 頻道。
+      # 注意：此值只宣告使用 Discord；不得在本文件保存 webhook URL、bot token 或 channel secret。
+      notify_channel: "discord"
+
+      # 通知管道來源。
+      # 用途：說明 Discord 發送能力來自 Hermes runtime 既有綁定，而不是本 repo 內的設定。
+      # Agent 行為：呼叫 Hermes 既有通知介面，不得自行建立 Discord webhook。
+      notify_channel_source: "hermes_existing_discord_binding"
+
+      # 通知機密保存位置。
+      # 用途：明確告知 Agent 相關機密由 Hermes runtime / deployment secret 管理。
+      # 注意：這不是實際 secret；不得把真實 token、webhook URL、頻道 ID 寫入 repo。
+      notify_secret_location: "managed_by_hermes_runtime_not_in_repository"
 
       # 通知訊息模板。
-      # 用途：Hermes 發送通知時可套用此模板；runner 應填入實際主機、路徑與剩餘空間。
+      # 用途：Hermes 發送 Discord 通知時可套用此模板；runner 應填入實際主機、路徑與剩餘空間。
       # 可用變數：{worker_id}、{output_root}、{free_space_gb}、{threshold_free_space_gb}、{task_id}。
       message_template: "Twitch 下載節點 {worker_id} 的輸出路徑 {output_root} 剩餘空間 {free_space_gb}GB，已低於門檻 {threshold_free_space_gb}GB。任務 {task_id} 已停止，請人工處理磁碟空間。"
 
@@ -411,9 +423,9 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
     if_output_root_missing: "blocked_unless_fallback_available"
 
     # 可用空間低於 storage.min_free_space_gb 或 notification.low_disk_space.threshold_free_space_gb 時的處理。
-    # 使用者決策：低於 1GB 時通知使用者。
-    # 行為：通知使用者，阻擋下載，不自動刪檔。
-    if_free_space_below_minimum: "notify_user_and_block_task"
+    # 使用者決策：低於 1GB 時透過 Hermes 既有 Discord 綁定通知使用者。
+    # 行為：發送 Discord 通知，阻擋下載，不自動刪檔。
+    if_free_space_below_minimum: "notify_user_via_discord_and_block_task"
 
     # 單一影片失敗時的處理。
     # 行為：繼續處理其他影片，並把失敗項目寫入 failed-items.json。
@@ -441,17 +453,17 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
 
 ## 5. 低磁碟空間通知規則
 
-使用者已指定：**剩餘空間低於 1GB 時向使用者通知。**
+使用者已指定：**剩餘空間低於 1GB 時，透過 Hermes 既有 Discord 綁定通知使用者。**
 
 Agent / Hermes / runner 必須遵守：
 
 1. 任務開始前檢查 `active_output_root_variable` 指向的輸出根目錄可用空間。
-2. 若可用空間低於 `notification.low_disk_space.threshold_free_space_gb`，必須觸發通知。
-3. 通知後不得繼續下載影片。
-4. 不得自動刪除任何已下載影片。
-5. 任務狀態應寫成 `blocked_needs_user_action`。
-6. `result.json` 與 `download-report.json` 必須記錄實際路徑、剩餘空間、門檻值與通知狀態。
-7. 實際通知管道仍為 `to_be_configured`，未設定前 Agent 不得假設可送出 Telegram、Email、LINE、Discord 或 webhook。
+2. 若可用空間低於 `notification.low_disk_space.threshold_free_space_gb`，必須觸發 Discord 通知。
+3. Discord 發送能力來自 Hermes runtime 的既有綁定，不得在 repo 內新增 webhook、token 或 channel secret。
+4. 通知後不得繼續下載影片。
+5. 不得自動刪除任何已下載影片。
+6. 任務狀態應寫成 `blocked_needs_user_action`。
+7. `result.json` 與 `download-report.json` 必須記錄實際路徑、剩餘空間、門檻值、通知管道與通知狀態。
 
 ---
 
@@ -506,5 +518,5 @@ note: "用途或授權備註"
 - yt-dlp 只負責下載。
 - systemd 只負責啟動與保底，不作為任務真相來源。
 - Twitch 來源、排程設定、存放路徑、磁碟門檻與通知策略以本文件變數為準。
-- 剩餘空間低於 1GB 時通知使用者、阻擋任務、不自動刪檔。
+- 剩餘空間低於 1GB 時，透過 Hermes 既有 Discord 綁定通知使用者、阻擋任務、不自動刪檔。
 - 任務狀態與派工真相應寫入本專案自己的 Hermes 狀態資料庫，不依賴對話記憶。
