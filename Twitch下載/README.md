@@ -25,6 +25,7 @@
 9. 定義 Hermes 從套件安裝、runner 產生到每日下載驗收的自主佈建與執行流程。
 10. 定義 Twitch 頻道來源清單的格式、維護規則與禁止猜測來源的規則。
 11. 提供 Hermes 交接入口，明確定義文件讀取順序、目前狀態、允許作業、停止條件與正式下載前檢查清單。
+12. 提供首次 Hermes 實機執行任務票，將文件規格推進到 bootstrap、preflight、runner 產生與 dry-run 驗收。
 
 ---
 
@@ -52,6 +53,7 @@ Agent 處理本目錄時，必須遵守以下規則：
 | `下載畫質設定.md` | 保存 Twitch 影片下載畫質設定；目前優先 1080p，若來源無 1080p 則 fallback 到 720p；若同時沒有 1080p 與 720p，通知並結束當天作業 |
 | `Hermes自主佈建與執行規格.md` | 定義 Hermes 自主 preflight、套件安裝、目錄建立、runner 產生、每日任務、下載執行、任務產物與 dry-run 驗收流程 |
 | `頻道來源維護規格.md` | 定義 `TWITCH_CHANNEL_SOURCES` 的格式、維護方式、驗證規則、空清單處理與 Agent 禁止猜測來源規則；不填入實際頻道 |
+| `首次Hermes執行任務票.md` | 定義 Hermes 第一次在 PI16G001 上執行 bootstrap、preflight、runner 產生、dry-run 與回報 `ready_for_channel_sources` 的任務清單；不允許正式下載 |
 
 ---
 
@@ -67,6 +69,7 @@ Agent 處理本目錄時，必須遵守以下規則：
 6. `Twitch下載/聊天紀錄保存策略.md`
 7. `Twitch下載/影片保留策略.md`
 8. `Twitch下載/Hermes自主佈建與執行規格.md`
+9. `Twitch下載/首次Hermes執行任務票.md`
 
 不得只依賴對話記憶或其他根目錄文件。
 
@@ -85,3 +88,4 @@ Agent 處理本目錄時，必須遵守以下規則：
 - Hermes 可依 `Hermes自主佈建與執行規格.md` 在 PI16G001 上執行 allowlist 內的套件安裝、目錄建立、runner 產生、dry-run 與每日任務驗收。
 - 若尚未完成 bootstrap、preflight、runner、dry-run 與通知能力驗收，Hermes 只能視為具備規劃能力，不可視為已具備完整自主執行能力。
 - Twitch 頻道來源清單的格式與維護規則以 `頻道來源維護規格.md` 為準；該文件不填入實際頻道，且 Agent 不得猜測、搜尋或自行新增來源。
+- `首次Hermes執行任務票.md` 是 Hermes 第一次實機作業的任務清單；本任務只允許 bootstrap、preflight、runner 產生與 dry-run，不允許正式 Twitch 下載。
