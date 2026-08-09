@@ -24,6 +24,7 @@
 8. 下載畫質以變數設定；目前優先 1080p，若無 1080p 則 fallback 到 720p；若同時沒有 1080p 與 720p，通知並結束當天作業。
 9. 定義 Hermes 從套件安裝、runner 產生到每日下載驗收的自主佈建與執行流程。
 10. 定義 Twitch 頻道來源清單的格式、維護規則與禁止猜測來源的規則。
+11. 提供 Hermes 交接入口，明確定義文件讀取順序、目前狀態、允許作業、停止條件與正式下載前檢查清單。
 
 ---
 
@@ -44,6 +45,7 @@ Agent 處理本目錄時，必須遵守以下規則：
 
 | 文件 | 用途 |
 |------|------|
+| `Hermes交接入口.md` | Hermes / Agent 收到本專案後的第一入口；定義讀取順序、目前狀態、允許作業、停止條件與正式下載前檢查清單 |
 | `PI16G001_Hermes_Twitch歸檔Worker設定.md` | 保存 Twitch 下載任務變數、Agent 讀取規則、排程、worker 與儲存路徑設定 |
 | `聊天紀錄保存策略.md` | 保存是否下載／保存 Twitch 聊天紀錄的明確決策；目前為只下載影片，不保存聊天紀錄 |
 | `影片保留策略.md` | 保存 Twitch 影片保存期限與清理規則；目前為永久保存，除非使用者手動刪除 |
@@ -57,13 +59,14 @@ Agent 處理本目錄時，必須遵守以下規則：
 
 所有 Agent 在規劃、修改、派送、佈建或執行本專案任務前，必須先讀取：
 
-1. `Twitch下載/README.md`
-2. `Twitch下載/PI16G001_Hermes_Twitch歸檔Worker設定.md`
-3. `Twitch下載/聊天紀錄保存策略.md`
-4. `Twitch下載/影片保留策略.md`
+1. `Twitch下載/Hermes交接入口.md`
+2. `Twitch下載/README.md`
+3. `Twitch下載/PI16G001_Hermes_Twitch歸檔Worker設定.md`
+4. `Twitch下載/頻道來源維護規格.md`
 5. `Twitch下載/下載畫質設定.md`
-6. `Twitch下載/Hermes自主佈建與執行規格.md`
-7. `Twitch下載/頻道來源維護規格.md`
+6. `Twitch下載/聊天紀錄保存策略.md`
+7. `Twitch下載/影片保留策略.md`
+8. `Twitch下載/Hermes自主佈建與執行規格.md`
 
 不得只依賴對話記憶或其他根目錄文件。
 
@@ -72,6 +75,7 @@ Agent 處理本目錄時，必須遵守以下規則：
 ## 5. 已確認決策
 
 - Twitch 影片下載工作由 Hermes agent 管理。
+- Hermes / Agent 收到本專案後，應先讀取 `Hermes交接入口.md`，再依該文件指定順序讀取其他必讀文件。
 - Twitch 頻道來源、排程、存放路徑、磁碟門檻與通知策略均以文件變數為準。
 - 剩餘空間低於 1GB 時，透過 Hermes 既有 Discord 綁定通知使用者。
 - 目前只下載影片，不保存 Twitch 聊天紀錄。
