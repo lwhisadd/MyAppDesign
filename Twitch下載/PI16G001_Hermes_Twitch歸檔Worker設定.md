@@ -36,9 +36,12 @@ Agent 必須遵守以下規則：
 2. 解析 `HERMES_TWITCH_ARCHIVE_VARIABLES` 區塊中的變數。
 3. 將變數轉換成當次任務的 `task-envelope.json` 與 `execution-manifest.json`。
 4. 若 `TWITCH_CHANNEL_SOURCES` 為空，Agent 必須停止建立下載任務，並回報 `requires_user_input`。
-5. 若變數與實機狀態不一致，Agent 必須標示為待確認，不得自行猜測。
-6. 若需要修改頻道清單或排程，應更新本文件，而不是修改 worker 腳本。
-7. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret 或其他機密資訊。
+5. Twitch 影片成品、metadata、暫存、archive 狀態檔、頻道清單檔與 log 路徑，必須全部從 `storage.STORAGE_PATH_VARIABLES` 讀取。
+6. Agent 不得在 prompt、shell script、systemd unit 或 execution manifest 中自行寫死任何存放路徑。
+7. 若需要變更存放路徑，應更新本文件的 `storage.STORAGE_PATH_VARIABLES`，而不是修改 worker 腳本。
+8. 若變數與實機狀態不一致，Agent 必須標示為待確認，不得自行猜測。
+9. 若需要修改頻道清單或排程，應更新本文件，而不是修改 worker 腳本。
+10. 本文件不得保存 Twitch 帳號密碼、OAuth token、cookie、API secret 或其他機密資訊。
 
 ---
 
@@ -101,11 +104,20 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
     use_download_archive: true
 
   storage:
-    preferred_output_root: "/mnt/twitch-archive"
-    fallback_output_root: "/srv/twitch-archive"
-    archive_state_file: "/var/lib/twitch-archiver/archive.txt"
-    channel_config_file: "/var/lib/twitch-archiver/channels.txt"
-    log_dir: "/var/log/twitch-archiver"
+    # 所有存放路徑都必須從此變數區塊讀取，不得寫死在 script、prompt 或 manifest 中。
+    STORAGE_PATH_VARIABLES:
+      output_root_primary: "/mnt/twitch-archive"
+      output_root_fallback: "/srv/twitch-archive"
+      temp_download_root: "/tmp/twitch-archive-work"
+      archive_state_file: "/var/lib/twitch-archiver/archive.txt"
+      channel_config_file: "/var/lib/twitch-archiver/channels.txt"
+      log_dir: "/var/log/twitch-archiver"
+      hermes_task_root: "/srv/hermes-twitch/tasks"
+      worker_result_root: "/srv/twitch-worker/results"
+    active_output_root_variable: "output_root_primary"
+    allow_fallback_output_root: true
+    metadata_sidecar_policy: "same_directory_as_video"
+    output_path_template: "{output_root}/{channel_name}/{upload_date}_{video_id}_{safe_title}.{ext}"
     min_free_space_gb: 20
 
   task_artifacts:
@@ -121,7 +133,7 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
 
   failure_policy:
     if_channel_list_empty: "requires_user_input"
-    if_output_root_missing: "blocked"
+    if_output_root_missing: "blocked_unless_fallback_available"
     if_free_space_below_minimum: "blocked"
     if_single_video_fails: "continue_and_report_failed_item"
     if_downloader_missing: "blocked"
@@ -129,7 +141,20 @@ HERMES_TWITCH_ARCHIVE_VARIABLES:
 
 ---
 
-## 4. Agent 執行說明
+## 4. 存放路徑變數規則
+
+存放路徑不由對話臨時決定，也不得寫死在程式碼中。Agent 必須依照以下順序處理：
+
+1. 讀取 `storage.STORAGE_PATH_VARIABLES`。
+2. 讀取 `storage.active_output_root_variable`，取得正式輸出根目錄變數名稱。
+3. 以該變數對應的路徑作為影片成品輸出根目錄。
+4. 若該路徑不存在、未掛載或剩餘空間低於 `storage.min_free_space_gb`，依 `failure_policy` 處理。
+5. 若 `storage.allow_fallback_output_root` 為 `true`，且 primary 不可用，可以改用 `output_root_fallback`，但必須在 `result.json` 與 `download-report.json` 中明確記錄實際使用路徑。
+6. 所有影片檔、info.json、thumbnail 與後續 sidecar metadata，必須依 `storage.output_path_template` 產生目標路徑。
+
+---
+
+## 5. Agent 執行說明
 
 Hermes 建立每日任務時，應依本文件產生任務資料。
 
@@ -145,11 +170,11 @@ TASK-YYYYMMDD-TWITCH-ARCHIVE-NNN
 依照 Twitch下載/PI16G001_Hermes_Twitch歸檔Worker設定.md 中的 HERMES_TWITCH_ARCHIVE_VARIABLES，下載 TWITCH_CHANNEL_SOURCES 內啟用來源的新 Twitch VOD，避免重複下載，並產出任務結果摘要。
 ```
 
-Worker 實際執行時，應使用 manifest 中的變數，不得自行覆寫 Twitch 來源。
+Worker 實際執行時，應使用 manifest 中的變數，不得自行覆寫 Twitch 來源或存放路徑。
 
 ---
 
-## 5. 頻道來源填寫規則
+## 6. 頻道來源填寫規則
 
 `TWITCH_CHANNEL_SOURCES` 由使用者或授權 Agent 維護。
 
@@ -166,11 +191,11 @@ Worker 實際執行時，應使用 manifest 中的變數，不得自行覆寫 Tw
 
 ---
 
-## 6. 設計原則
+## 7. 設計原則
 
 - Hermes 管任務生命週期。
 - PI16G001 worker 管實際執行。
 - yt-dlp 只負責下載。
 - systemd 只負責啟動與保底，不作為任務真相來源。
-- Twitch 來源與排程設定以本文件變數為準。
+- Twitch 來源、排程設定與存放路徑以本文件變數為準。
 - 任務狀態與派工真相應寫入本專案自己的 Hermes 狀態資料庫，不依賴對話記憶。
