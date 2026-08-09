@@ -13,7 +13,7 @@
 第二部分的正確計畫是：
 
 ```text
-在進行 Twitch 下載之前，先將指定影片備份一份到 YouTube 頻道。
+在進行 Twitch 下載之前，先將最近一次任務產生的影片備份一份到指定 YouTube 頻道。
 ```
 
 目前還不能正式下載 Twitch 影片，原因是：
@@ -22,22 +22,23 @@
 TWITCH_CHANNEL_SOURCES 目前仍是空清單
 ```
 
-目前也還不能執行第二部分 YouTube 備份，除非使用者另外設定：
+目前也還不能執行第二部分 YouTube 備份，除非已具備：
 
 ```text
-youtube_backup_source_video_root
-YouTube 目標頻道
+最近一次任務產物
+指定 YouTube 目標頻道
 Hermes runtime 可用的 YouTube OAuth
 ```
 
-因此目前正確狀態是：
+目前正確狀態：
 
 ```yaml
 project_status:
   documentation: "ready"
   hermes_first_execution: "ready_for_bootstrap_and_dry_run"
   phase_2_youtube_backup_spec: "ready"
-  phase_2_youtube_backup: "blocked_until_youtube_backup_variables_configured"
+  phase_2_youtube_backup_scope: "latest_task_generated_videos"
+  phase_2_youtube_backup: "blocked_until_latest_task_and_youtube_runtime_ready"
   twitch_download: "blocked_until_channel_sources_configured_and_youtube_backup_completed"
   channel_sources: "empty_by_design"
 ```
@@ -49,7 +50,9 @@ project_status:
 3. Hermes 不可以猜測 Twitch 頻道。
 4. Hermes 不可以在來源清單空白時正式下載 Twitch 影片。
 5. 第二部分是 YouTube 備份，不是 Twitch 下載。
-6. YouTube 備份成功或沒有待備份影片後，才允許進入後續 Twitch 下載流程。
+6. 第二部分只備份最近一次任務產生的影片。
+7. 第二部分不得掃描整個資料夾，也不得使用人工清單。
+8. YouTube 備份成功或最近一次任務沒有待備份影片後，才允許進入後續 Twitch 下載流程。
 
 ---
 
@@ -95,7 +98,7 @@ blocked_with_reason
 6. 通知能力已檢查。
 7. 還沒有正式下載任何 Twitch 影片。
 
-### Step 3：設定第二部分 YouTube 備份
+### Step 3：第二部分 YouTube 備份
 
 第二部分要讀：
 
@@ -103,33 +106,25 @@ blocked_with_reason
 Twitch下載/第二部分YouTube頻道備份功能規格.md
 ```
 
-第二部分需要設定：
+第二部分目標：
 
-```yaml
-youtube_backup_source_video_root: "<要備份到 YouTube 的本機影片來源目錄>"
-youtube_target_channel_id: "<目標 YouTube 頻道 ID，由使用者或 Hermes runtime 設定>"
-youtube_oauth_secret_location: "managed_by_hermes_runtime_not_in_repository"
-youtube_default_privacy_status: "private"
+```text
+把最近一次任務產生的影片備份到指定 YouTube 頻道。
 ```
 
-注意：YouTube token、refresh token、client secret 不得寫入 repo、manifest、report、log 或 Discord 通知。
-
-### Step 4：YouTube 備份成功後，才進入 Twitch 下載
-
-第二部分成功狀態只有兩種：
+第二部分成功條件：
 
 ```text
 succeeded
+succeeded_no_latest_task_videos_to_backup
 succeeded_no_pending_youtube_backup_items
 ```
 
-只有第二部分成功，才允許後續 Twitch 下載流程繼續。
+若第二部分失敗，Hermes 必須停止後續 Twitch 下載並通知使用者。
 
-若有待備份影片但 YouTube 備份失敗，Hermes 必須停止後續 Twitch 下載並通知使用者。
+### Step 4：填入 Twitch 來源
 
-### Step 5：填入 Twitch 來源
-
-等 Hermes 回報 `ready_for_channel_sources`，且第二部分 YouTube 備份條件也處理完成後，再填入實際 Twitch 來源。
+等 Hermes 回報 `ready_for_channel_sources` 後，再填入實際 Twitch 來源。
 
 來源要填在：
 
@@ -162,6 +157,27 @@ TWITCH_CHANNEL_SOURCES:
     note: "使用者指定的 Twitch 頻道影片來源"
 ```
 
+### Step 5：來源填好且第二部分通過後才允許後續 Twitch 下載
+
+正式 Twitch 下載前，Hermes 必須確認：
+
+```yaml
+ready_for_twitch_download:
+  bootstrap_passed: true
+  preflight_passed: true
+  runner_ready: true
+  dry_run_passed: true
+  notification_runtime_available: true
+  youtube_backup_before_twitch_download_completed: true
+  output_root_available: true
+  free_space_above_1gb: true
+  channel_sources_non_empty: true
+  all_enabled_sources_user_confirmed: true
+  no_secret_in_sources: true
+```
+
+只要其中任何一項不通過，Hermes 不得正式 Twitch 下載。
+
 ---
 
 ## 3. Hermes 要先讀哪份文件
@@ -178,8 +194,8 @@ Twitch下載/Hermes交接入口.md
 2. 要依什麼順序讀其他文件。
 3. 哪些事可以自主做。
 4. 哪些事必須停止並通知使用者。
-5. 第二部分是在 Twitch 下載前先做 YouTube 備份。
-6. 來源清單空白時不得正式下載 Twitch 影片。
+5. 來源清單空白時不得正式下載。
+6. 第二部分是 YouTube 備份，且只處理最近一次任務產生的影片。
 7. 第一次實機作業要依 `首次Hermes執行任務票.md` 執行。
 
 ---
@@ -208,11 +224,11 @@ Twitch下載/Hermes交接入口.md
 
 | 文件 | 用途 |
 |------|------|
-| `README.md` | 人類操作入口；說明目前狀態、下一步、交給 Hermes 的指令、第二部分 YouTube 備份與正式下載前條件 |
+| `README.md` | 人類操作入口；說明目前狀態、下一步、交給 Hermes 的指令與正式下載前條件 |
 | `Hermes交接入口.md` | Hermes / Agent 第一入口；定義讀取順序、目前狀態、允許作業、停止條件與正式下載前檢查清單 |
 | `首次Hermes執行任務票.md` | Hermes 第一次實機任務；只允許 bootstrap、preflight、runner 產生、dry-run 與回報，不允許正式下載 |
-| `第二部分YouTube頻道備份功能規格.md` | 第二部分正確規格；在 Twitch 下載之前，先將指定影片備份到 YouTube 頻道，成功後才允許後續 Twitch 下載 |
-| `第二部分正式每日下載功能規格.md` | 已被取代；不得作為第二部分執行依據，保留為錯誤規格更正記錄 |
+| `第二部分YouTube頻道備份功能規格.md` | 第二部分；在 Twitch 下載前，將最近一次任務產生的影片備份到指定 YouTube 頻道 |
+| `第二部分正式每日下載功能規格.md` | 已被取代；不得作為第二部分執行依據 |
 | `PI16G001_Hermes_Twitch歸檔Worker設定.md` | 主設定檔；保存 Twitch 下載任務變數、排程、worker、儲存路徑、通知與失敗策略 |
 | `頻道來源維護規格.md` | 定義 `TWITCH_CHANNEL_SOURCES` 的格式、維護方式、驗證規則、空清單處理與禁止猜測來源規則 |
 | `下載畫質設定.md` | 定義畫質策略：優先 1080p，fallback 到 720p；若都沒有則通知並結束當天作業 |
@@ -239,6 +255,14 @@ Twitch下載/Hermes交接入口.md
 
 不得只依賴對話記憶、README 摘要或其他根目錄文件。
 
+不得使用：
+
+```text
+Twitch下載/第二部分正式每日下載功能規格.md
+```
+
+作為第二部分執行依據；該文件已被取代。
+
 ---
 
 ## 7. 已確認的專案決策
@@ -256,11 +280,14 @@ CONFIRMED_DECISIONS:
     real_twitch_download_allowed: false
 
   phase_2_youtube_backup:
-    purpose: "backup_specified_videos_to_youtube_before_twitch_download"
+    purpose: "backup_latest_task_generated_videos_to_specified_youtube_channel_before_twitch_download"
+    selection_mode: "latest_task_generated_videos"
+    destination: "specified_youtube_channel"
     must_run_before_twitch_download: true
+    scan_entire_folder_allowed: false
+    manual_video_list_enabled: false
     default_privacy_status: "private"
     delete_local_video_after_upload: false
-    secrets_in_repository_allowed: false
     if_backup_fails: "block_twitch_download_and_notify_user"
 
   twitch_download_scope:
@@ -304,20 +331,20 @@ CONFIRMED_DECISIONS:
 Hermes / Agent / Worker / runner 不得：
 
 1. 在 `TWITCH_CHANNEL_SOURCES` 空白時正式下載 Twitch 影片。
-2. 在第二部分 YouTube 備份失敗後繼續 Twitch 下載。
-3. 猜測、搜尋或自行新增 Twitch 頻道來源。
-4. 猜測 YouTube 目標頻道。
-5. 自行建立 YouTube 頻道。
-6. 自行保存 YouTube token、refresh token 或 client secret。
-7. 自行公開 YouTube 影片。
-8. 把頻道、路徑、排程、畫質、通知寫死到 runner、prompt、systemd unit 或 manifest template。
-9. 下載 Twitch 聊天紀錄。
-10. 自動刪除已下載影片或 YouTube 備份來源影片。
-11. 自行降低到 480p 或更低畫質。
-12. 保存 Discord webhook、bot token、Twitch OAuth token、cookie、密碼或其他 secret。
-13. 混用 `多機協作/`、`前台選型/`、`討論3/` 等其他根目錄的決策。
-14. 安裝 allowlist 以外的套件。
-15. 在未通過 dry-run 前宣稱可正式下載。
+2. 猜測、搜尋或自行新增 Twitch 頻道來源。
+3. 把頻道、路徑、排程、畫質、通知寫死到 runner、prompt、systemd unit 或 manifest template。
+4. 下載 Twitch 聊天紀錄。
+5. 自動刪除已下載影片。
+6. 自行降低到 480p 或更低畫質。
+7. 保存 Discord webhook、bot token、Twitch OAuth token、cookie、密碼或其他 secret。
+8. 混用 `多機協作/`、`前台選型/`、`討論3/` 等其他根目錄的決策。
+9. 安裝 allowlist 以外的套件。
+10. 在未通過 dry-run 前宣稱可正式下載。
+11. 將第二部分視為 Twitch 下載。
+12. 在 YouTube 備份失敗後繼續 Twitch 下載。
+13. 第二部分掃描整個資料夾上傳所有影片。
+14. 第二部分使用人工清單上傳影片。
+15. 第二部分上傳不是最近一次任務產生的影片。
 
 ---
 
@@ -351,16 +378,15 @@ PI16G001 preflight
 
 1. 實際 Twitch 頻道來源填寫。
 2. 正式 Twitch 影片下載。
-3. 第二部分 YouTube 備份實際上傳。
-4. 聊天紀錄下載。
-5. 已下載影片刪除。
-6. live recording。
-7. clips 下載。
-8. highlights 下載。
+3. 聊天紀錄下載。
+4. 已下載影片刪除。
+5. live recording。
+6. clips 下載。
+7. highlights 下載。
 
 ---
 
-## 10. 什麼時候才算可以正式進入 Twitch 下載
+## 10. 什麼時候才算可以進入後續 Twitch 下載
 
 只有同時符合以下條件，Hermes 才能進入後續 Twitch 下載：
 
@@ -371,7 +397,7 @@ PI16G001 preflight
 5. runner 已存在且可執行。
 6. dry-run 通過。
 7. Hermes 既有 Discord 通知能力可用。
-8. 第二部分 YouTube 備份成功，或沒有待備份影片。
+8. 第二部分 YouTube 備份已成功，或最近一次任務沒有待備份影片。
 9. output root 可用。
 10. 剩餘空間高於 1GB。
 11. `TWITCH_CHANNEL_SOURCES` 不為空。
@@ -400,9 +426,10 @@ Agent 處理本目錄時，必須遵守：
 1. 把 Twitch下載/Hermes交接入口.md 交給 Hermes。
 2. 要 Hermes 依 Twitch下載/首次Hermes執行任務票.md 跑第一次 bootstrap + dry-run。
 3. 等 Hermes 回報 ready_for_channel_sources。
-4. 設定第二部分 YouTube 備份來源與目標頻道，不把任何 token 寫進 repo。
-5. 依 Twitch下載/第二部分YouTube頻道備份功能規格.md 執行 YouTube 備份。
-6. YouTube 備份成功或沒有待備份影片後，再到 PI16G001_Hermes_Twitch歸檔Worker設定.md 填 TWITCH_CHANNEL_SOURCES。
-7. 確認來源格式符合 頻道來源維護規格.md。
-8. 來源填好且驗證通過後，才允許 Hermes 進入後續 Twitch 下載。
+4. 第二部分依 Twitch下載/第二部分YouTube頻道備份功能規格.md 執行。
+5. 第二部分只備份最近一次任務產生的影片到指定 YouTube 頻道。
+6. YouTube 備份成功或沒有待備份影片後，才允許後續 Twitch 下載。
+7. 再到 PI16G001_Hermes_Twitch歸檔Worker設定.md 填 TWITCH_CHANNEL_SOURCES。
+8. 確認來源格式符合 頻道來源維護規格.md。
+9. 來源填好且驗證通過後，才允許 Hermes 正式每日 Twitch 下載。
 ```
