@@ -22,6 +22,7 @@ TWITCH_CHANNEL_SOURCES 目前仍是空清單
 project_status:
   documentation: "ready"
   hermes_first_execution: "ready_for_bootstrap_and_dry_run"
+  phase_2_formal_download_spec: "ready"
   real_download: "blocked_until_channel_sources_configured"
   channel_sources: "empty_by_design"
 ```
@@ -33,6 +34,7 @@ project_status:
 3. Hermes 不可以猜測 Twitch 頻道。
 4. Hermes 不可以在來源清單空白時正式下載影片。
 5. 等 Hermes 回報 `ready_for_channel_sources` 後，再由使用者填入 Twitch 來源。
+6. 來源填入並驗證通過後，第二部分正式每日下載功能以 `第二部分正式每日下載功能規格.md` 為準。
 
 ---
 
@@ -133,6 +135,16 @@ ready_for_real_download:
 
 只要其中任何一項不通過，Hermes 不得正式下載。
 
+### Step 5：正式下載依第二部分文件執行
+
+來源填好且驗證通過後，正式每日下載流程以這份文件為準：
+
+```text
+Twitch下載/第二部分正式每日下載功能規格.md
+```
+
+這份文件定義：每日 task id、正式 manifest、yt-dlp 執行規則、download archive 去重、1080p / 720p 畫質處理、低磁碟停止、報告格式與 Discord 通知規則。
+
 ---
 
 ## 3. Hermes 要先讀哪份文件
@@ -151,6 +163,7 @@ Twitch下載/Hermes交接入口.md
 4. 哪些事必須停止並通知使用者。
 5. 來源清單空白時不得正式下載。
 6. 第一次實機作業要依 `首次Hermes執行任務票.md` 執行。
+7. 來源填入並驗證後，正式下載要依 `第二部分正式每日下載功能規格.md` 執行。
 
 ---
 
@@ -165,6 +178,7 @@ Twitch下載/Hermes交接入口.md
 | 把專案交給 Hermes | `Hermes交接入口.md` |
 | 第一次讓 Hermes 跑實機 bootstrap / dry-run | `首次Hermes執行任務票.md` |
 | 設定 Twitch 頻道來源 | `頻道來源維護規格.md`、`PI16G001_Hermes_Twitch歸檔Worker設定.md` |
+| 讓 Hermes 執行正式每日下載 | `第二部分正式每日下載功能規格.md` |
 | 改下載畫質策略 | `下載畫質設定.md` |
 | 改是否保存聊天紀錄 | `聊天紀錄保存策略.md` |
 | 改影片保留或刪除策略 | `影片保留策略.md` |
@@ -180,6 +194,7 @@ Twitch下載/Hermes交接入口.md
 | `README.md` | 人類操作入口；說明目前狀態、下一步、交給 Hermes 的指令與正式下載前條件 |
 | `Hermes交接入口.md` | Hermes / Agent 第一入口；定義讀取順序、目前狀態、允許作業、停止條件與正式下載前檢查清單 |
 | `首次Hermes執行任務票.md` | Hermes 第一次實機任務；只允許 bootstrap、preflight、runner 產生、dry-run 與回報，不允許正式下載 |
+| `第二部分正式每日下載功能規格.md` | 定義來源填入並驗證通過後的正式每日 Twitch VOD 下載流程、去重、畫質處理、任務產物、報告與通知規則 |
 | `PI16G001_Hermes_Twitch歸檔Worker設定.md` | 主設定檔；保存 Twitch 下載任務變數、排程、worker、儲存路徑、通知與失敗策略 |
 | `頻道來源維護規格.md` | 定義 `TWITCH_CHANNEL_SOURCES` 的格式、維護方式、驗證規則、空清單處理與禁止猜測來源規則 |
 | `下載畫質設定.md` | 定義畫質策略：優先 1080p，fallback 到 720p；若都沒有則通知並結束當天作業 |
@@ -202,6 +217,7 @@ Twitch下載/Hermes交接入口.md
 7. `Twitch下載/影片保留策略.md`
 8. `Twitch下載/Hermes自主佈建與執行規格.md`
 9. `Twitch下載/首次Hermes執行任務票.md`
+10. `Twitch下載/第二部分正式每日下載功能規格.md`
 
 不得只依賴對話記憶、README 摘要或其他根目錄文件。
 
@@ -229,6 +245,11 @@ CONFIRMED_DECISIONS:
     current_status: "empty_by_design"
     agent_may_guess_sources: false
     if_empty: "requires_user_input_channel_sources_empty"
+
+  phase_2_formal_download:
+    spec_file: "第二部分正式每日下載功能規格.md"
+    enabled_only_after_channel_sources_validated: true
+    real_download_before_sources_configured: false
 
   quality:
     primary: "1080p"
@@ -268,6 +289,7 @@ Hermes / Agent / Worker / runner 不得：
 8. 混用 `多機協作/`、`前台選型/`、`討論3/` 等其他根目錄的決策。
 9. 安裝 allowlist 以外的套件。
 10. 在未通過 dry-run 前宣稱可正式下載。
+11. 在未讀取 `第二部分正式每日下載功能規格.md` 前執行正式每日下載。
 
 ---
 
@@ -325,6 +347,9 @@ PI16G001 preflight
 10. `TWITCH_CHANNEL_SOURCES` 不為空。
 11. 所有啟用來源都是 `authorization_status: "user_confirmed"`。
 12. 來源中沒有 secret、token、cookie 或 password。
+13. Hermes 已讀取 `第二部分正式每日下載功能規格.md`。
+
+正式每日下載的實際流程、manifest、task artifacts、報告與通知規則，以 `第二部分正式每日下載功能規格.md` 為準。
 
 ---
 
@@ -350,5 +375,5 @@ Agent 處理本目錄時，必須遵守：
 3. 等 Hermes 回報 ready_for_channel_sources。
 4. 再到 PI16G001_Hermes_Twitch歸檔Worker設定.md 填 TWITCH_CHANNEL_SOURCES。
 5. 確認來源格式符合 頻道來源維護規格.md。
-6. 來源填好且驗證通過後，才允許 Hermes 正式每日下載。
+6. 來源填好且驗證通過後，讓 Hermes 依 第二部分正式每日下載功能規格.md 執行正式每日下載。
 ```
